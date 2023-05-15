@@ -248,6 +248,7 @@ const word CMD_SR = command_int("sr");    // SR - Display registers
 const word CMD_IN = command_int("in");    // IN - Display info
 const word CMD_QM = command_int("?\0");   // ?  - Help
 const word CMD_HE = command_int("h\0");   // H  - Help
+const word CMD_Test = command_int("tt");   // H  - Help
 const word CMD_NOP = 0;
 
 word breakpoint = 0;
@@ -1099,6 +1100,13 @@ ENUM_RUN_MODE process_command(String input) {
     switch (cmd_int) {
         case CMD_NOP:
             //  User entered a zero-length line at prompt
+            break;
+
+        case CMD_Test:
+            wait_for_CLK_rising_edge();
+            digitalWriteFast(PIN_SYNC, 0x1);
+            wait_for_CLK_rising_edge();
+            digitalWriteFast(PIN_SYNC, 0x0);
             break;
 
         case CMD_QM:
