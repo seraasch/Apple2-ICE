@@ -69,7 +69,7 @@
 //     2 - Reads accelerated using internal memory and writes pass through to motherboard
 //     3 - All read and write accesses use accelerated internal memory 
 
-#define VERSION_NUM "1.0"
+#define VERSION_NUM "1.0c"
 
 #define OFFLINE_DEBUG true
 
@@ -505,25 +505,29 @@ inline void start_read(uint32_t local_address) {
 // On the rising CLK edge, read in the data
 // -------------------------------------------------
 inline uint8_t finish_read_byte() {
+    uint8_t rv = 0;
 
     if (internal_address_check(current_address) > Read_Internal_Write_External) { // Either fast mode
         last_access_internal_RAM = 1;
-        return internal_RAM[current_address];
+        rv = internal_RAM[current_address];
     } else {
         if (last_access_internal_RAM == 1) wait_for_CLK_rising_edge();
         last_access_internal_RAM = 0;
-        digitalWriteFast(PIN_SYNC, 0x0);
 
         do {
             wait_for_CLK_rising_edge();
         } while (direct_ready_n == 0x1); // Delay a clock cycle until ready is active 
 
         if (internal_address_check(current_address) != All_External) {
-            return internal_RAM[current_address];
+            rv = internal_RAM[current_address];
         } else {
-            return direct_datain;
+            rv = direct_datain;
         }
     }
+
+    digitalWriteFast(PIN_SYNC, 0x0);
+
+    return rv;
 }
 
 // -------------------------------------------------
@@ -925,6 +929,8 @@ void nmi_handler() {
     assert_sync = 1;
     start_read(register_pc); // Fetch first opcode at vector PCH,PCL
 
+    Serial.println("[NMI Complete]");
+
     return;
 }
 
@@ -953,6 +959,8 @@ void irq_handler(uint8_t opcode_is_brk) {
     assert_sync = 1;
     start_read(register_pc); // Fetch first opcode at vector PCH,PCL
 
+    Serial.println("[IRQ Complete]");
+
     return;
 }
 
@@ -973,6 +981,8 @@ void display_next_instruction(uint16_t pc, uint8_t opcode) {
 void display_registers() {
     char buf[32];
     sprintf(buf, "Registers:  A=%02X, X=%02X, Y=%02X", register_a, register_x, register_y);
+    Serial.println(buf);
+    sprintf(buf, "            PC=%04X, SP=%04X", register_pc, register_sp_fixed);
     Serial.println(buf);
 }
 
@@ -1094,6 +1104,7 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_QM:
         case CMD_HE:
             Serial.println(String("Available Commands:\n\r")+
+                           "    IN                      Information about ICE state\n\r"+
                            "    MD <mode>               Set memory addressing mode (0-3 see below)\n\r"+
                            "    DR                      Dump registers\n\r"+
                            "    SS                      Single-step execution\n\r"+
@@ -1194,7 +1205,11 @@ ENUM_RUN_MODE process_command(String input) {
                         sprintf(s,"\n\r[%04X] = ", addr);
                         Serial.print(s);
                     }
+
+                    digitalWriteFast(PIN_SYNC, 0x1);
                     byte data = read_byte(addr++);
+                    digitalWriteFast(PIN_SYNC, 0x0);
+
                     sprintf(s, "%02X ", data);
                     Serial.print(s);
                 }
@@ -1211,7 +1226,11 @@ ENUM_RUN_MODE process_command(String input) {
             {
                 word addr = strtoul(arg1.c_str(), 0, 16);
                 byte data = strtoul(arg2.c_str(), 0, 16);
+
+                digitalWriteFast(PIN_SYNC, 0x1);
                 write_byte(addr, data);
+                digitalWriteFast(PIN_SYNC, 0x0);
+
                 while (remainder.length()) {
                     String d = parse_next_arg(remainder, remainder);
                     data = strtoul(d.c_str(), 0, 16);
@@ -1267,17 +1286,20 @@ void loop() {
         }
 
         if (run_mode != RUNNING) {
+            uint16_t temp_pc = register_pc;
+
+            display_next_instruction(register_pc, next_instruction);
 
             do {
-                display_next_instruction(register_pc, next_instruction);
                 String c = get_command();
                 Serial.println(" ");
                 run_mode = process_command(c);
                 Serial.println(" ");
 
                 //  Update the next_instruction, as PC or memory may have changed
-                if (run_mode != RUNNING) {
+                if ((run_mode != RUNNING) && (register_pc != temp_pc)) {
                     next_instruction = read_byte(register_pc);
+                    temp_pc = register_pc;
                 }
             } while (run_mode == WAITING);
         }
