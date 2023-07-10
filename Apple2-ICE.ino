@@ -248,7 +248,7 @@ const word CMD_SR = command_int("sr");    // SR - Display registers
 const word CMD_IN = command_int("in");    // IN - Display info
 const word CMD_QM = command_int("?\0");   // ?  - Help
 const word CMD_HE = command_int("h\0");   // H  - Help
-const word CMD_Test = command_int("tt");   // H  - Help
+const word CMD_Test = command_int("tt");   // tt -- TEST operation
 const word CMD_NOP = 0;
 
 word breakpoint = 0;
