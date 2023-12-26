@@ -5,8 +5,6 @@
 //
 // -------------------------------------------------
 
-#include "opcode_decoder.h"
-
 // -------------------------------------------------
 // 0x0A - ASL A - Arithmetic Shift Left - Accumulator
 // -------------------------------------------------
@@ -146,7 +144,7 @@ void Calculate_ADC(uint16_t local_data) {
     return;
 }
 uint16_t opcode_0x69() {
-    Calculate_ADC(Fetch_Immediate());
+    Calculate_ADC(Fetch_Immediate(1));
     return(register_pc + opcode_info[0x69].length);
 } // 0x69 - ADC - Immediate - Binary
 uint16_t opcode_0x65() {
@@ -248,7 +246,7 @@ void Calculate_SBC(uint16_t local_data) {
     return;
 }
 uint16_t opcode_0xE9() {
-    Calculate_SBC(Fetch_Immediate());
+    Calculate_SBC(Fetch_Immediate(1));
     return(register_pc + opcode_info[0xE9].length);
 } // 0xE9 - SBC - Immediate
 uint16_t opcode_0xE5() {
@@ -443,7 +441,7 @@ uint16_t opcode_0x68() {
 // AND
 // -------------------------------------------------
 uint16_t opcode_0x29() {
-    register_a = register_a & (Fetch_Immediate());
+    register_a = register_a & (Fetch_Immediate(1));
     Begin_Fetch_Next_Opcode();
     Calc_Flags_NEGATIVE_ZERO(register_a);
     return(register_pc + opcode_info[0x29].length);
@@ -495,7 +493,7 @@ uint16_t opcode_0x31() {
 // ORA
 // -------------------------------------------------
 uint16_t opcode_0x09() {
-    register_a = register_a | (Fetch_Immediate());
+    register_a = register_a | (Fetch_Immediate(1));
     Begin_Fetch_Next_Opcode();
     Calc_Flags_NEGATIVE_ZERO(register_a);
     return(register_pc + opcode_info[0x09].length);
@@ -547,7 +545,7 @@ uint16_t opcode_0x11() {
 // EOR
 // -------------------------------------------------
 uint16_t opcode_0x49() {
-    register_a = register_a ^ (Fetch_Immediate());
+    register_a = register_a ^ (Fetch_Immediate(1));
     Begin_Fetch_Next_Opcode();
     Calc_Flags_NEGATIVE_ZERO(register_a);
     return(register_pc + opcode_info[0x49].length);
@@ -599,7 +597,7 @@ uint16_t opcode_0x51() {
 // LDA
 // -------------------------------------------------
 uint16_t opcode_0xA9() {
-    register_a = Fetch_Immediate();
+    register_a = Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     Calc_Flags_NEGATIVE_ZERO(register_a);
     return(register_pc + opcode_info[0xA9].length);
@@ -651,7 +649,7 @@ uint16_t opcode_0xB1() {
 // LDX
 // -------------------------------------------------
 uint16_t opcode_0xA2() {
-    register_x = Fetch_Immediate();
+    register_x = Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     Calc_Flags_NEGATIVE_ZERO(register_x);
     return(register_pc + opcode_info[0xA2].length);
@@ -685,7 +683,7 @@ uint16_t opcode_0xBE() {
 // LDY                                                        
 // -------------------------------------------------          
 uint16_t opcode_0xA0() {
-    register_y = Fetch_Immediate();
+    register_y = Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     Calc_Flags_NEGATIVE_ZERO(register_y);
     return(register_pc + opcode_info[0xA0].length);
@@ -757,7 +755,7 @@ void Calculate_CMP(uint8_t local_data) {
     return;
 }
 uint16_t opcode_0xC9() {
-    Calculate_CMP(Fetch_Immediate());
+    Calculate_CMP(Fetch_Immediate(1));
     return(register_pc + opcode_info[0xC9].length);
 } // 0xC9 - CMP - Immediate
 uint16_t opcode_0xC5() {
@@ -806,7 +804,7 @@ void Calculate_CPX(uint8_t local_data) {
     return;
 }
 uint16_t opcode_0xE0() {
-    Calculate_CPX(Fetch_Immediate());
+    Calculate_CPX(Fetch_Immediate(1));
     return(register_pc + opcode_info[0xE0].length);
 } // 0xE0 - CPX - Immediate
 uint16_t opcode_0xE4() {
@@ -835,7 +833,7 @@ void Calculate_CPY(uint8_t local_data) {
     return;
 }
 uint16_t opcode_0xC0() {
-    Calculate_CPY(Fetch_Immediate());
+    Calculate_CPY(Fetch_Immediate(1));
     return(register_pc + opcode_info[0xC0].length);
 } // 0xC0 - CPY - Immediate
 uint16_t opcode_0xC4() {
@@ -1133,15 +1131,15 @@ uint16_t opcode_0x3E() {
 // -------------------------------------------------
 void Branch_Taken() {
 
-    effective_address = Sign_Extend16(Fetch_Immediate());
+    effective_address = Sign_Extend16(Fetch_Immediate(1));
     effective_address = (register_pc + 1) + effective_address;
 
     if ((0xFF00 & register_pc) == (0xFF00 & effective_address)) {
-        Fetch_Immediate();
+        Fetch_Immediate(2);
     } // Page boundary not crossed
     else {
-        Fetch_Immediate();
-        Fetch_Immediate();
+        Fetch_Immediate(2);
+        Fetch_Immediate(3);
     } // Page boundary crossed
 
     register_pc = effective_address;
@@ -1151,7 +1149,7 @@ void Branch_Taken() {
 uint16_t opcode_0xB0() {
     if ((flag_c) == 1) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
     return(register_pc);
@@ -1159,7 +1157,7 @@ uint16_t opcode_0xB0() {
 uint16_t opcode_0x90() {
     if ((flag_c) == 0) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
     return(register_pc);
@@ -1167,7 +1165,7 @@ uint16_t opcode_0x90() {
 uint16_t opcode_0xF0() {
     if ((flag_z) == 1) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
     return(register_pc);
@@ -1175,7 +1173,7 @@ uint16_t opcode_0xF0() {
 uint16_t opcode_0xD0() {
     if ((flag_z) == 0) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
     return(register_pc);
@@ -1183,7 +1181,7 @@ uint16_t opcode_0xD0() {
 uint16_t opcode_0x70() {
     if ((flag_v) == 1) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
     return(register_pc);
@@ -1191,7 +1189,7 @@ uint16_t opcode_0x70() {
 uint16_t opcode_0x50() {
     if ((flag_v) == 0) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
     return(register_pc);
@@ -1199,7 +1197,7 @@ uint16_t opcode_0x50() {
 uint16_t opcode_0x30() {
     if ((flag_n) == 1) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
     return(register_pc);
@@ -1207,7 +1205,7 @@ uint16_t opcode_0x30() {
 uint16_t opcode_0x10() {
     if ((flag_n) == 0) Branch_Taken();
     else {
-        Fetch_Immediate();
+        Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     } 
     return(register_pc);
@@ -1229,8 +1227,8 @@ uint16_t opcode_0x6C() {
     uint16_t lal, lah;
     uint16_t adl, adh;
 
-    lal = Fetch_Immediate();
-    lah = Fetch_Immediate() << 8;
+    lal = Fetch_Immediate(1);
+    lah = Fetch_Immediate(2) << 8;
     adl = read_byte(lah + lal, false);
     adh = read_byte(lah + lal + 1, false) << 8;
     effective_address = adh + adl;
@@ -1245,8 +1243,8 @@ uint16_t opcode_0x6C() {
 uint16_t opcode_0x20() {
     uint16_t adl, adh;
 
-    adl = Fetch_Immediate();
-    adh = Fetch_Immediate() << 8;
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
     read_byte(register_sp_fixed, false);
     push((0xFF00 & register_pc) >> 8);
 
@@ -1262,7 +1260,7 @@ uint16_t opcode_0x20() {
 uint16_t opcode_0x40() {
     uint16_t pcl, pch;
 
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     read_byte(register_sp_fixed, false);
     register_flags = pop();
     pcl = pop();
@@ -1278,7 +1276,7 @@ uint16_t opcode_0x40() {
 uint16_t opcode_0x60() {
     uint16_t pcl, pch;
 
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     read_byte(register_sp_fixed, false);
     pcl = pop();
     pch = pop() << 8;
@@ -1666,11 +1664,11 @@ void Calculate_ANC(uint8_t local_data) {
     return;
 }
 uint16_t opcode_0x0B() {
-    Calculate_ANC(Fetch_Immediate());
+    Calculate_ANC(Fetch_Immediate(1));
     return(register_pc + opcode_info[0x0B].length);
 } // 0x0B - ANC - Immediate
 uint16_t opcode_0x2B() {
-    Calculate_ANC(Fetch_Immediate());
+    Calculate_ANC(Fetch_Immediate(1));
     return(register_pc + opcode_info[0x2B].length);
 } // 0x2B - ANC - Immediate
 
@@ -1692,7 +1690,7 @@ void Calculate_ALR(uint8_t local_data) {
     return;
 }
 uint16_t opcode_0x4B() {
-    Calculate_ALR(Fetch_Immediate());
+    Calculate_ALR(Fetch_Immediate(1));
     return(register_pc + opcode_info[0x4B].length);
 } // 0x4B - ALR - Immediate
 
@@ -1722,7 +1720,7 @@ void Calculate_ARR(uint8_t local_data) {
     return;
 }
 uint16_t opcode_0x6B() {
-    Calculate_ARR(Fetch_Immediate());
+    Calculate_ARR(Fetch_Immediate(1));
     return(register_pc + opcode_info[0x6B].length);
 } // 0x6B - ARR - Immediate
 
@@ -1749,7 +1747,7 @@ void Calculate_SBX(uint16_t local_data) {
     return;
 }
 uint16_t opcode_0xCB() {
-    Calculate_SBX(Fetch_Immediate());
+    Calculate_SBX(Fetch_Immediate(1));
     return(register_pc + opcode_info[0xCB].length);
 } // 0xCB - SBX - Immediate
 
@@ -1769,27 +1767,27 @@ uint16_t opcode_0xBB() {
 // NOP - Fetch Immediate
 // --------------------------------------------------------------------------------------------------
 uint16_t opcode_0x80() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     return(register_pc + opcode_info[0x80].length);
 } // 0x80 - NOP - Immediate
 uint16_t opcode_0x82() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     return(register_pc + opcode_info[0x82].length);
 } // 0x82 - NOP - Immediate
 uint16_t opcode_0xC2() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     return(register_pc + opcode_info[0xC2].length);
 } // 0xC2 - NOP - Immediate
 uint16_t opcode_0xE2() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     return(register_pc + opcode_info[0xE2].length);
 } // 0xE2 - NOP - Immediate
 uint16_t opcode_0x89() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     return(register_pc + opcode_info[0x89].length);
 } // 0x89 - NOP - Immediate
@@ -1894,62 +1892,62 @@ uint16_t opcode_0xFC() {
 // JAM - Lock up the processor
 // --------------------------------------------------------------------------------------------------
 uint16_t opcode_0x02() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x02].length);
 } // 0x02 - JAM
 uint16_t opcode_0x12() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x12].length);
 } // 0x12 - JAM
 uint16_t opcode_0x22() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x22].length);
 } // 0x22 - JAM
 uint16_t opcode_0x32() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x32].length);
 } // 0x32 - JAM
 uint16_t opcode_0x42() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x42].length);
 } // 0x42 - JAM
 uint16_t opcode_0x52() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x52].length);
 } // 0x52 - JAM
 uint16_t opcode_0x62() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x62].length);
 } // 0x62 - JAM
 uint16_t opcode_0x72() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x72].length);
 } // 0x72 - JAM
 uint16_t opcode_0x92() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0x92].length);
 } // 0x92 - JAM
 uint16_t opcode_0xB2() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0xB2].length);
 } // 0xB2 - JAM
 uint16_t opcode_0xD2() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0xD2].length);
 } // 0xD2 - JAM
 uint16_t opcode_0xF2() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     while (1) {}
     return(register_pc + opcode_info[0xF2].length);
 } // 0xF2 - JAM
@@ -1983,12 +1981,12 @@ uint16_t opcode_0x9B() {
     return(register_pc + opcode_info[0x9B].length);
 } // 0x9B - TAS - Absolute , Y - Implelented here as a size 3 NOP
 uint16_t opcode_0x8B() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     return(register_pc + opcode_info[0x8B].length);
 } // 0x8B - ANE - Immediate    - Implelented here as a size 2 NOP
 uint16_t opcode_0xAB() {
-    Fetch_Immediate();
+    Fetch_Immediate(1);
     Begin_Fetch_Next_Opcode();
     return(register_pc + opcode_info[0xAB].length);
 } // 0xAB - LAX - Immediate    - Implelented here as a size 2 NOP

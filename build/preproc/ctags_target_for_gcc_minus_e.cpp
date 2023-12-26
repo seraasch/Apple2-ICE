@@ -69,18 +69,26 @@
 //     1 - Reads use cycle accurate internal memory and writes pass through to motherboard
 //     2 - Reads accelerated using internal memory and writes pass through to motherboard
 //     3 - All read and write accesses use accelerated internal memory 
-# 79 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+
+
+
+
+
+
+
+# 79 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino" 2
+
 // Teensy 4.1 pin assignments
 //
-# 89 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+# 90 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 //  Return the ACTAUL state of the CLK0 pin
 // Complexity vs Speed... hmmm...
 
 //  #define CLK0 (digitalReadFast(PIN_CLK0_INV) == LOW)
-# 130 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+# 131 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 // 6502 Flags
 //
-# 140 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+# 141 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 // 6502 stack always in Page 1
 //
 
@@ -318,6 +326,7 @@ void setup() {
     }
 
     run_mode = WAITING;
+    initialize_opcode_info();
 }
 
 // --------------------------------------------------------------------------------------------------
@@ -675,19 +684,19 @@ void Begin_Fetch_Next_Opcode() {
 // -------------------------------------------------
 // Addressing Modes
 // -------------------------------------------------
-uint8_t Fetch_Immediate() {
-    register_pc++;
-    return read_byte(register_pc, false);
+uint8_t Fetch_Immediate(uint8_t offset) {
+//    register_pc++;
+    return read_byte(register_pc+offset, false);
 }
 
 uint8_t Fetch_ZeroPage() {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     return read_byte(effective_address, false);
 }
 
 uint8_t Fetch_ZeroPage_X() {
     uint16_t bal;
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(register_pc + 1, false);
     effective_address = (0x00FF & (bal + register_x));
     return read_byte(effective_address, false);
@@ -695,7 +704,7 @@ uint8_t Fetch_ZeroPage_X() {
 
 uint8_t Fetch_ZeroPage_Y() {
     uint16_t bal;
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(register_pc + 1, false);
     effective_address = (0x00FF & (bal + register_y));
     return read_byte(effective_address, false);
@@ -704,8 +713,8 @@ uint8_t Fetch_ZeroPage_Y() {
 uint16_t Calculate_Absolute() {
     uint16_t adl, adh;
 
-    adl = Fetch_Immediate();
-    adh = Fetch_Immediate() << 8;
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
     effective_address = adl + adh;
     return effective_address;
 }
@@ -713,8 +722,8 @@ uint16_t Calculate_Absolute() {
 uint8_t Fetch_Absolute() {
     uint16_t adl, adh;
 
-    adl = Fetch_Immediate();
-    adh = Fetch_Immediate() << 8;
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
     effective_address = adl + adh;
     return read_byte(effective_address, false);
 }
@@ -723,8 +732,8 @@ uint8_t Fetch_Absolute_X(uint8_t page_cross_check) {
     uint16_t bal, bah;
     uint8_t local_data;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_x;
     local_data = read_byte(effective_address, false);
 
@@ -738,8 +747,8 @@ uint8_t Fetch_Absolute_Y(uint8_t page_cross_check) {
     uint16_t bal, bah;
     uint8_t local_data;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_y;
     local_data = read_byte(effective_address, false);
 
@@ -754,7 +763,7 @@ uint8_t Fetch_Indexed_Indirect_X() {
     uint16_t adl, adh;
     uint8_t local_data;
 
-    bal = Fetch_Immediate() + register_x;
+    bal = Fetch_Immediate(1) + register_x;
     read_byte(bal, false);
     adl = read_byte(0xFF & bal, false);
     adh = read_byte(0xFF & (bal + 1), false) << 8;
@@ -767,7 +776,7 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
     uint16_t ial, bah, bal;
     uint8_t local_data;
 
-    ial = Fetch_Immediate();
+    ial = Fetch_Immediate(1);
     bal = read_byte(0xFF & ial, false);
     bah = read_byte(0xFF & (ial + 1), false) << 8;
 
@@ -781,27 +790,27 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
 }
 
 void Write_ZeroPage(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     write_byte(effective_address, local_data);
     return;
 }
 
 void Write_Absolute(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
-    effective_address = (Fetch_Immediate() << 8) + effective_address;
+    effective_address = Fetch_Immediate(1);
+    effective_address = (Fetch_Immediate(2) << 8) + effective_address;
     write_byte(effective_address, local_data);
     return;
 }
 
 void Write_ZeroPage_X(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
     write_byte((0x00FF & (effective_address + register_x)), local_data);
     return;
 }
 
 void Write_ZeroPage_Y(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
     write_byte((0x00FF & (effective_address + register_y)), local_data);
     return;
@@ -810,8 +819,8 @@ void Write_ZeroPage_Y(uint8_t local_data) {
 void Write_Absolute_X(uint8_t local_data) {
     uint16_t bal, bah;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_x;
     read_byte(effective_address, false);
     write_byte(effective_address, local_data);
@@ -821,8 +830,8 @@ void Write_Absolute_X(uint8_t local_data) {
 void Write_Absolute_Y(uint8_t local_data) {
     uint16_t bal, bah;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_y;
     read_byte(effective_address, false);
 
@@ -837,7 +846,7 @@ void Write_Indexed_Indirect_X(uint8_t local_data) {
     uint16_t bal;
     uint16_t adl, adh;
 
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(bal, false);
     adl = read_byte(0xFF & (bal + register_x), false);
     adh = read_byte(0xFF & (bal + register_x + 1), false) << 8;
@@ -850,7 +859,7 @@ void Write_Indexed_Indirect_Y(uint8_t local_data) {
     uint16_t ial;
     uint16_t bal, bah;
 
-    ial = Fetch_Immediate();
+    ial = Fetch_Immediate(1);
     bal = read_byte(ial, false);
     bah = read_byte(ial + 1, false) << 8;
     effective_address = bah + bal + register_y;
@@ -957,14 +966,36 @@ void irq_handler(uint8_t opcode_is_brk) {
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
 
-# 1017 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino" 2
+# 1019 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino" 2
 
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
 
 void display_next_instruction(uint16_t pc, uint8_t opcode) {
     char buffer[32];
-    sprintf(buffer, "PC:%04X - %02X", pc, opcode);
+
+    uint8_t length = opcode_info[opcode].length;
+    switch (length) {
+        case 1:
+        {
+            sprintf(buffer, "[%04X] %02X        ", pc, opcode);
+            break;
+        }
+        case 2:
+        {
+            uint8_t op1 = read_byte(pc+1, false);
+            sprintf(buffer, "[%04X] %02X %02X     ", pc, opcode, op1);
+            break;
+        }
+        case 3:
+        {
+            uint8_t op1 = read_byte(pc+1, false);
+            uint8_t op2 = read_byte(pc+2, false);
+            sprintf(buffer, "[%04X] %02X %02X %02X  ", pc, opcode, op1, op2);
+            break;
+        }
+    }
+
     Serial.println(buffer);
 }
 
@@ -1330,7 +1361,7 @@ void loop() {
         switch (next_instruction) {
 
    case 0x00:
-    next_pc = irq_handler(0x1);
+    irq_handler(0x1);
     break; // BRK - Break
    case 0x01:
     next_pc = opcode_0x01();
@@ -2104,6 +2135,9 @@ void loop() {
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(39, 0);
 
+        char buf[32];
+        sprintf(buf, "%04X", next_pc);
+        Serial.println(buf);
         register_pc = next_pc;
     }
 }

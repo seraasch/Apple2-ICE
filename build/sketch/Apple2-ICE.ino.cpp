@@ -77,6 +77,7 @@
 
 #include <stdint.h>
 
+#include "opcode_decoder.h"
 
 // Teensy 4.1 pin assignments
 //
@@ -268,101 +269,101 @@ String last_command = "";
 // -------------------------------------------------
 // Check for CLK activity --> determines debug mode
 // -------------------------------------------------
-#line 269 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 270 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 bool check_for_CLK_activity();
-#line 291 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 292 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void setup();
-#line 394 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 396 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 ADDR_MODE internal_address_check(int32_t local_address);
-#line 414 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 416 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK0_falling_edge();
-#line 421 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 423 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK0_rising_edge();
-#line 432 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 434 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void sample_at_CLK_rising_edge();
-#line 474 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 476 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK_falling_edge();
-#line 486 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 488 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void send_address(uint32_t local_address);
-#line 519 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 521 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void start_read(uint32_t local_address, bool assert_sync);
-#line 546 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 548 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t finish_read_byte();
-#line 580 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 582 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t read_byte(uint16_t local_address, bool assert_sync);
-#line 643 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 645 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void write_byte(uint16_t local_address, uint8_t local_write_data);
-#line 693 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 695 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void push(uint8_t push_data);
-#line 699 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 701 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t pop();
-#line 706 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 708 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Calc_Flags_NEGATIVE_ZERO(uint8_t local_data);
-#line 717 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 719 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t Sign_Extend16(uint16_t reg_data);
-#line 725 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 727 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Begin_Fetch_Next_Opcode();
-#line 734 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-uint8_t Fetch_Immediate();
-#line 739 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 736 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+uint8_t Fetch_Immediate(uint8_t offset);
+#line 741 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_ZeroPage();
-#line 744 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 746 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_ZeroPage_X();
-#line 752 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 754 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_ZeroPage_Y();
-#line 760 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 762 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t Calculate_Absolute();
-#line 769 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 771 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute();
-#line 778 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 780 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute_X(uint8_t page_cross_check);
-#line 793 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 795 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute_Y(uint8_t page_cross_check);
-#line 808 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 810 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Indexed_Indirect_X();
-#line 822 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 824 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check);
-#line 839 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 841 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage(uint8_t local_data);
-#line 845 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 847 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute(uint8_t local_data);
-#line 852 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 854 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage_X(uint8_t local_data);
-#line 859 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 861 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage_Y(uint8_t local_data);
-#line 866 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 868 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute_X(uint8_t local_data);
-#line 877 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 879 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute_Y(uint8_t local_data);
-#line 892 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 894 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Indexed_Indirect_X(uint8_t local_data);
-#line 905 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 907 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Indexed_Indirect_Y(uint8_t local_data);
-#line 918 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 920 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Double_WriteBack(uint8_t local_data);
-#line 927 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 929 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void reset_sequence();
-#line 959 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 961 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void nmi_handler();
-#line 987 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 989 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void irq_handler(uint8_t opcode_is_brk);
-#line 1021 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1023 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_next_instruction(uint16_t pc, uint8_t opcode);
-#line 1027 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1051 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_registers();
-#line 1035 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1059 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_info();
-#line 1041 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1065 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_command();
-#line 1069 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1093 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_arg(String args, uint8_t arg_number);
-#line 1095 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1119 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String parse_next_arg(String &_src, String &remainder);
-#line 1126 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1150 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 ENUM_RUN_MODE process_command(String input);
-#line 1323 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1347 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void loop();
-#line 269 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 270 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 bool check_for_CLK_activity() {
     unsigned long start = millis();
     while (((GPIO6_DR >> 12) & 0x1) == 0) {  // Teensy 4.1 Pin-24  GPIO6_DR[12]  CLK
@@ -471,6 +472,7 @@ void setup() {
     }
 
     run_mode = WAITING;
+    initialize_opcode_info();
 }
 
 // --------------------------------------------------------------------------------------------------
@@ -828,19 +830,19 @@ void Begin_Fetch_Next_Opcode() {
 // -------------------------------------------------
 // Addressing Modes
 // -------------------------------------------------
-uint8_t Fetch_Immediate() {
-    register_pc++;
-    return read_byte(register_pc, false);
+uint8_t Fetch_Immediate(uint8_t offset) {
+//    register_pc++;
+    return read_byte(register_pc+offset, false);
 }
 
 uint8_t Fetch_ZeroPage() {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     return read_byte(effective_address, false);
 }
 
 uint8_t Fetch_ZeroPage_X() {
     uint16_t bal;
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(register_pc + 1, false);
     effective_address = (0x00FF & (bal + register_x));
     return read_byte(effective_address, false);
@@ -848,7 +850,7 @@ uint8_t Fetch_ZeroPage_X() {
 
 uint8_t Fetch_ZeroPage_Y() {
     uint16_t bal;
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(register_pc + 1, false);
     effective_address = (0x00FF & (bal + register_y));
     return read_byte(effective_address, false);
@@ -857,8 +859,8 @@ uint8_t Fetch_ZeroPage_Y() {
 uint16_t Calculate_Absolute() {
     uint16_t adl, adh;
 
-    adl = Fetch_Immediate();
-    adh = Fetch_Immediate() << 8;
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
     effective_address = adl + adh;
     return effective_address;
 }
@@ -866,8 +868,8 @@ uint16_t Calculate_Absolute() {
 uint8_t Fetch_Absolute() {
     uint16_t adl, adh;
 
-    adl = Fetch_Immediate();
-    adh = Fetch_Immediate() << 8;
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
     effective_address = adl + adh;
     return read_byte(effective_address, false);
 }
@@ -876,8 +878,8 @@ uint8_t Fetch_Absolute_X(uint8_t page_cross_check) {
     uint16_t bal, bah;
     uint8_t local_data;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_x;
     local_data = read_byte(effective_address, false);
 
@@ -891,8 +893,8 @@ uint8_t Fetch_Absolute_Y(uint8_t page_cross_check) {
     uint16_t bal, bah;
     uint8_t local_data;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_y;
     local_data = read_byte(effective_address, false);
 
@@ -907,7 +909,7 @@ uint8_t Fetch_Indexed_Indirect_X() {
     uint16_t adl, adh;
     uint8_t local_data;
 
-    bal = Fetch_Immediate() + register_x;
+    bal = Fetch_Immediate(1) + register_x;
     read_byte(bal, false);
     adl = read_byte(0xFF & bal, false);
     adh = read_byte(0xFF & (bal + 1), false) << 8;
@@ -920,7 +922,7 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
     uint16_t ial, bah, bal;
     uint8_t local_data;
 
-    ial = Fetch_Immediate();
+    ial = Fetch_Immediate(1);
     bal = read_byte(0xFF & ial, false);
     bah = read_byte(0xFF & (ial + 1), false) << 8;
 
@@ -934,27 +936,27 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
 }
 
 void Write_ZeroPage(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     write_byte(effective_address, local_data);
     return;
 }
 
 void Write_Absolute(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
-    effective_address = (Fetch_Immediate() << 8) + effective_address;
+    effective_address = Fetch_Immediate(1);
+    effective_address = (Fetch_Immediate(2) << 8) + effective_address;
     write_byte(effective_address, local_data);
     return;
 }
 
 void Write_ZeroPage_X(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
     write_byte((0x00FF & (effective_address + register_x)), local_data);
     return;
 }
 
 void Write_ZeroPage_Y(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
     write_byte((0x00FF & (effective_address + register_y)), local_data);
     return;
@@ -963,8 +965,8 @@ void Write_ZeroPage_Y(uint8_t local_data) {
 void Write_Absolute_X(uint8_t local_data) {
     uint16_t bal, bah;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_x;
     read_byte(effective_address, false);
     write_byte(effective_address, local_data);
@@ -974,8 +976,8 @@ void Write_Absolute_X(uint8_t local_data) {
 void Write_Absolute_Y(uint8_t local_data) {
     uint16_t bal, bah;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_y;
     read_byte(effective_address, false);
 
@@ -990,7 +992,7 @@ void Write_Indexed_Indirect_X(uint8_t local_data) {
     uint16_t bal;
     uint16_t adl, adh;
 
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(bal, false);
     adl = read_byte(0xFF & (bal + register_x), false);
     adh = read_byte(0xFF & (bal + register_x + 1), false) << 8;
@@ -1003,7 +1005,7 @@ void Write_Indexed_Indirect_Y(uint8_t local_data) {
     uint16_t ial;
     uint16_t bal, bah;
 
-    ial = Fetch_Immediate();
+    ial = Fetch_Immediate(1);
     bal = read_byte(ial, false);
     bah = read_byte(ial + 1, false) << 8;
     effective_address = bah + bal + register_y;
@@ -1117,7 +1119,29 @@ void irq_handler(uint8_t opcode_is_brk) {
 
 void display_next_instruction(uint16_t pc, uint8_t opcode) {
     char buffer[32];
-    sprintf(buffer, "PC:%04X - %02X", pc, opcode);
+
+    uint8_t length = opcode_info[opcode].length;
+    switch (length) {
+        case 1:
+        {
+            sprintf(buffer, "[%04X] %02X        ", pc, opcode);
+            break;
+        }
+        case 2:
+        {
+            uint8_t op1 = read_byte(pc+1, false);
+            sprintf(buffer, "[%04X] %02X %02X     ", pc, opcode, op1);
+            break;
+        }
+        case 3:
+        {
+            uint8_t op1 = read_byte(pc+1, false);
+            uint8_t op2 = read_byte(pc+2, false);
+            sprintf(buffer, "[%04X] %02X %02X %02X  ", pc, opcode, op1, op2);
+            break;
+        }
+    }
+
     Serial.println(buffer);
 }
 
@@ -1483,7 +1507,7 @@ void loop() {
         switch (next_instruction) {
 
 			case 0x00:
-				next_pc = irq_handler(0x1);
+				irq_handler(0x1);
 				break; // BRK - Break
 			case 0x01:
 				next_pc = opcode_0x01();
@@ -2257,6 +2281,9 @@ void loop() {
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0);
 
+        char buf[32];
+        sprintf(buf, "%04X", next_pc);
+        Serial.println(buf);
         register_pc = next_pc;
     }
 }
