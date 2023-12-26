@@ -10,7 +10,7 @@
 // -------------------------------------------------
 void opcode_0x0A() {
 
-    read_byte(register_pc);
+    read_byte(register_pc, false);
     Begin_Fetch_Next_Opcode();
 
     if (0x80 & register_a) register_flags = register_flags | 0x01; // Set the C flag
@@ -27,7 +27,7 @@ void opcode_0x0A() {
 // -------------------------------------------------
 void opcode_0x4A() {
 
-    read_byte(register_pc);
+    read_byte(register_pc, false);
     Begin_Fetch_Next_Opcode();
 
     if (0x01 & register_a) register_flags = register_flags | 0x01; // Set the C flag
@@ -46,7 +46,7 @@ void opcode_0x6A() {
 
     uint8_t old_carry_flag = 0;
 
-    read_byte(register_pc);
+    read_byte(register_pc, false);
     Begin_Fetch_Next_Opcode();
 
     old_carry_flag = register_flags << 7; // Shift the old carry flag to bit[8] to be rotated in
@@ -67,7 +67,7 @@ void opcode_0x2A() {
 
     uint8_t old_carry_flag = 0;
 
-    read_byte(register_pc);
+    read_byte(register_pc, false);
     Begin_Fetch_Next_Opcode();
 
     old_carry_flag = 0x1 & register_flags; // Store the old carry flag to be rotated in
@@ -282,48 +282,48 @@ void opcode_0xF1() {
 // Flag set/resets and NOP
 // -------------------------------------------------
 void opcode_0xEA() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     return;
 } // 0xEA - NOP   
 void opcode_0x18() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xFE;
     return;
 } // 0x18 - CLC - Clear Carry Flag  
 void opcode_0xD8() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xF7;
     return;
 } // 0xD8 - CLD - Clear Decimal Mode  
 void opcode_0x58() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xFB;
     return;
 } // 0x58 - CLI - Clear Interrupt Flag  
 void opcode_0xB8() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xBF;
     return;
 } // 0xB8 - CLV - Clear Overflow Flag  
 void opcode_0x38() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags | 0x01;
     return;
 } // 0x38 - SEC - Set Carry Flag  
 void opcode_0x78() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags | 0x04;
     return;
 } // 0x78 - SEI - Set Interrupt Flag  
 void opcode_0xF8() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags | 0x08;
     return;
@@ -333,28 +333,28 @@ void opcode_0xF8() {
 // Increment/Decrements
 // -------------------------------------------------
 void opcode_0xCA() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_x = register_x - 1;
     Calc_Flags_NEGATIVE_ZERO(register_x);
     return;
 } // 0xCA - DEX - Decrement X  
 void opcode_0x88() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_y = register_y - 1;
     Calc_Flags_NEGATIVE_ZERO(register_y);
     return;
 } // 0x88 - DEY - Decrement Y  
 void opcode_0xE8() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_x = register_x + 1;
     Calc_Flags_NEGATIVE_ZERO(register_x);
     return;
 } // 0xE8 - INX - Increment X  
 void opcode_0xC8() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_y = register_y + 1;
     Calc_Flags_NEGATIVE_ZERO(register_y);
@@ -365,41 +365,41 @@ void opcode_0xC8() {
 // Transfers
 // -------------------------------------------------
 void opcode_0xAA() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_x = register_a;
     Calc_Flags_NEGATIVE_ZERO(register_x);
     return;
 } // 0xAA - TAX - Transfer Accumulator to X 
 void opcode_0xA8() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_y = register_a;
     Calc_Flags_NEGATIVE_ZERO(register_y);
     return;
 } // 0xA8 - TAY - Transfer Accumulator to Y
 void opcode_0xBA() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_x = register_sp;
     Calc_Flags_NEGATIVE_ZERO(register_x);
     return;
 } // 0xBA - TSX - Transfer Stack Pointer to X
 void opcode_0x8A() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_a = register_x;
     Calc_Flags_NEGATIVE_ZERO(register_a);
     return;
 } // 0x8A - TXA - Transfer X to Accumulator
 void opcode_0x9A() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_sp = register_x;
     return;
 } // 0x9A - TXS - Transfer X to Stack Pointer
 void opcode_0x98() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     Begin_Fetch_Next_Opcode();
     register_a = register_y;
     Calc_Flags_NEGATIVE_ZERO(register_a);
@@ -410,27 +410,27 @@ void opcode_0x98() {
 // PUSH/POP Flags and Accumulator 
 // -------------------------------------------------
 void opcode_0x08() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     push(register_flags | 0x30);
     Begin_Fetch_Next_Opcode();
     return;
 } // 0x08 - PHP - Push Flags to Stack
 void opcode_0x48() {
-    read_byte(register_pc + 1);
+    read_byte(register_pc+1, false);
     push(register_a);
     Begin_Fetch_Next_Opcode();
     return;
 } // 0x48 - PHA - Push Accumulator to the stack
 void opcode_0x28() {
-    read_byte(register_pc + 1);
-    read_byte(register_sp_fixed);
+    read_byte(register_pc+1, false);
+    read_byte(register_sp_fixed, false);
     register_flags = (pop() | 0x30);
     Begin_Fetch_Next_Opcode();
     return;
 } // 0x28 - PLP - Pop Flags from Stack
 void opcode_0x68() {
-    read_byte(register_pc + 1);
-    read_byte(register_sp_fixed);
+    read_byte(register_pc+1, false);
+    read_byte(register_sp_fixed, false);
     register_a = pop();
     Calc_Flags_NEGATIVE_ZERO(register_a);
     Begin_Fetch_Next_Opcode();
@@ -1143,8 +1143,7 @@ void Branch_Taken() {
     } // Page boundary crossed
 
     register_pc = effective_address;
-    assert_sync = 1;
-    start_read(register_pc);
+    start_read(register_pc, true);
     return;
 }
 void opcode_0xB0() {
@@ -1217,8 +1216,7 @@ void opcode_0x10() {
 // -------------------------------------------------
 void opcode_0x4C() {
     register_pc = Calculate_Absolute();
-    assert_sync = 1;
-    start_read(register_pc);
+    start_read(register_pc, true);
     return;
 } // 0x4C - JMP - Jump Absolute
 
@@ -1231,12 +1229,11 @@ void opcode_0x6C() {
 
     lal = Fetch_Immediate();
     lah = Fetch_Immediate() << 8;
-    adl = read_byte(lah + lal);
-    adh = read_byte(lah + lal + 1) << 8;
+    adl = read_byte(lah + lal, false);
+    adh = read_byte(lah + lal + 1, false) << 8;
     effective_address = adh + adl;
     register_pc = (0xFF00 & adh) + (0x00FF & effective_address); // 6502 page wrapping bug 
-    assert_sync = 1;
-    start_read(register_pc);
+    start_read(register_pc, true);
     return;
 }
 
@@ -1248,13 +1245,12 @@ void opcode_0x20() {
 
     adl = Fetch_Immediate();
     adh = Fetch_Immediate() << 8;
-    read_byte(register_sp_fixed);
+    read_byte(register_sp_fixed, false);
     push((0xFF00 & register_pc) >> 8);
 
     push(0x00FF & register_pc);
     register_pc = adh + adl;
-    assert_sync = 1;
-    start_read(register_pc);
+    start_read(register_pc, true);
     return;
 }
 
@@ -1265,13 +1261,12 @@ void opcode_0x40() {
     uint16_t pcl, pch;
 
     Fetch_Immediate();
-    read_byte(register_sp_fixed);
+    read_byte(register_sp_fixed, false);
     register_flags = pop();
     pcl = pop();
     pch = pop() << 8;
     register_pc = pch + pcl;
-    assert_sync = 1;
-    start_read(register_pc);
+    start_read(register_pc, true);
     return;
 }
 
@@ -1282,13 +1277,12 @@ void opcode_0x60() {
     uint16_t pcl, pch;
 
     Fetch_Immediate();
-    read_byte(register_sp_fixed);
+    read_byte(register_sp_fixed, false);
     pcl = pop();
     pch = pop() << 8;
     register_pc = pch + pcl + 1;
-    read_byte(register_pc);
-    assert_sync = 1;
-    start_read(register_pc);
+    read_byte(register_pc, false);
+    start_read(register_pc, true);
     return;
 }
 

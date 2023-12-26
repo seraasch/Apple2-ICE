@@ -1,0 +1,11 @@
+{
+  "additionalFiles": "..\\..\\..,..\\..\\..,..\\..,..\\..,..\\..",
+  "builtInToolsFolders": "",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "",
+  "fqbn": "teensy:avr:teensy41:usb=serial,speed=600,opt=o2std,keys=en-us",
+  "hardwareFolders": "C:\\Users\\sraas\\AppData\\Local\\Arduino15\\packages",
+  "otherLibrariesFolders": "C:\\Users\\sraas\\OneDrive\\Documents\\Arduino\\libraries",
+  "runtime.ide.version": "10607",
+  "sketchLocation": "C:\\Users\\sraas\\Repositories\\Apple2-ICE"
+}

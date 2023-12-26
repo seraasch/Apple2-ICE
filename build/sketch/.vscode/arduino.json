@@ -1,0 +1,8 @@
+#line 1 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\.vscode\\arduino.json"
+{
+    "configuration": "usb=serial,speed=600,opt=o2std,keys=en-us",
+    "board": "teensy:avr:teensy41",
+    "sketch": "Apple2-ICE.ino",
+    "port": "COM3",
+    "output": "./build"
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\sraas\\AppData\\Local\\Arduino15\\packages\\teensy\\hardware\\avr\\1.58.1\\cores\\teensy4"
+  },
+  {
+    "Sourcefile": "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\build\\sketch\\Apple2-ICE.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
