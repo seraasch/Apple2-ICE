@@ -1280,7 +1280,7 @@ uint16_t opcode_0x60() {
     read_byte(register_sp_fixed, false);
     pcl = pop();
     pch = pop() << 8;
-    register_pc = pch + pcl + 1;
+    register_pc = pch + pcl + 3;
     read_byte(register_pc, false);
     start_read(register_pc, true);
     return(register_pc);

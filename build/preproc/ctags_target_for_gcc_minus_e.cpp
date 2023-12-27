@@ -210,7 +210,7 @@ const word CMD_NOP = 0;
 
 word breakpoint = 0;
 
-enum ENUM_RUN_MODE {WAITING=0, SINGLE_STEP, RUNNING} run_mode;
+enum ENUM_RUN_MODE {WAITING=0, SINGLE_STEP, RUNNING, RESETTING} run_mode;
 
 bool debug_mode = true;
 String last_command = "";
@@ -1128,7 +1128,7 @@ ENUM_RUN_MODE process_command(String input) {
             break;
 
         case CMD_RS:
-            resetFunc(); // Reset the ICE
+            run_mode = RESETTING;
 
         case CMD_Test:
             sample_at_CLK_rising_edge();
@@ -1353,6 +1353,12 @@ void loop() {
                     temp_pc = register_pc;
                 }
             } while (run_mode == WAITING);
+        }
+
+        if (run_mode == RESETTING) {
+            // Break out of the internal while loop, causing the main loop() 
+            // to be called again, which executes the reset sequence
+            break;
         }
 
         // For SS mode, turn on the SYNC signal for EVERY INSTRUCTION
