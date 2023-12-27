@@ -975,23 +975,25 @@ void display_next_instruction(uint16_t pc, uint8_t opcode) {
     char buffer[32];
 
     uint8_t length = opcode_info[opcode].length;
+    String op = opcode_info[opcode].opcode;
     switch (length) {
         case 1:
         {
-            sprintf(buffer, "[%04X] %02X        ", pc, opcode);
+            sprintf(buffer, "[%04X] %02X        %s", pc, opcode, op.c_str());
             break;
         }
         case 2:
         {
             uint8_t op1 = read_byte(pc+1, false);
-            sprintf(buffer, "[%04X] %02X %02X     ", pc, opcode, op1);
+            sprintf(buffer, "[%04X] %02X %02X     %s %02X", pc, opcode, op1, op.c_str(), op1);
             break;
         }
         case 3:
         {
             uint8_t op1 = read_byte(pc+1, false);
             uint8_t op2 = read_byte(pc+2, false);
-            sprintf(buffer, "[%04X] %02X %02X %02X  ", pc, opcode, op1, op2);
+            sprintf(buffer, "[%04X] %02X %02X %02X  %s %02X%02X",
+                pc, opcode, op1, op2, op.c_str(), op2, op1);
             break;
         }
     }
