@@ -358,6 +358,19 @@ inline ADDR_MODE internal_address_check(int32_t local_address) {
     return All_External;
 }
 
+String flag_status(void) {
+    String s;
+
+    s = s + ((register_flags & 0x01) >> 0 /* register_flags[0]*/ ? "C" : "-");
+    s = s + ((register_flags & 0x02) >> 1 /* register_flags[1]*/ ? "Z" : "-");
+    s = s + ((register_flags & 0x04) >> 2 /* register_flags[2]*/ ? "I" : "-");
+    s = s + ((register_flags & 0x08) >> 3 /* register_flags[3]*/ ? "D" : "-");
+    s = s + ((register_flags & 0x10) >> 4 /* register_flags[4]*/ ? "B" : "-");
+    s = s + ((register_flags & 0x40) >> 6 /* register_flags[6]*/ ? "V" : "-");
+    s = s + ((register_flags & 0x80) >> 7 /* register_flags[7]*/ ? "N" : "-");
+
+    return(s);
+}
 
 
 // Clock edge detection.
@@ -966,7 +979,7 @@ void irq_handler(uint8_t opcode_is_brk) {
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
 
-# 1019 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino" 2
+# 1032 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino" 2
 
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
@@ -1006,6 +1019,8 @@ void display_registers() {
     sprintf(buf, "Registers:  A=%02X, X=%02X, Y=%02X", register_a, register_x, register_y);
     Serial.println(buf);
     sprintf(buf, "            PC=%04X, SP=%04X", register_pc, (0x0100 | register_sp));
+    Serial.println(buf);
+    sprintf(buf, "            Flags: %s", flag_status().c_str());
     Serial.println(buf);
 }
 
@@ -1097,8 +1112,6 @@ String parse_next_arg(String &_src, String &remainder) {
     return arg;
 }
 
-
-void(* resetFunc) (void) = 0;//declare reset function at address 0
 
 ENUM_RUN_MODE process_command(String input) {
 
@@ -1353,6 +1366,23 @@ void loop() {
                     temp_pc = register_pc;
                 }
             } while (run_mode == WAITING);
+        }
+        else {
+            while (Serial.available() > 0) {
+                // read the incoming byte:
+                char b = Serial.read();
+
+                switch(b) {
+                    case 0x1B:
+                        run_mode = WAITING;
+                }
+            }
+        }
+
+        if (run_mode == WAITING) {
+            // just transitioned to WAITING while running...
+            // skip the rest of this loop
+            continue;
         }
 
         if (run_mode == RESETTING) {

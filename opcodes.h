@@ -1132,7 +1132,7 @@ uint16_t opcode_0x3E() {
 void Branch_Taken() {
 
     effective_address = Sign_Extend16(Fetch_Immediate(1));
-    effective_address = (register_pc + 1) + effective_address;
+    effective_address = (register_pc + 2) + effective_address;
 
     if ((0xFF00 & register_pc) == (0xFF00 & effective_address)) {
         Fetch_Immediate(2);
@@ -1149,6 +1149,7 @@ void Branch_Taken() {
 uint16_t opcode_0xB0() {
     if ((flag_c) == 1) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0xB0].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
@@ -1157,6 +1158,7 @@ uint16_t opcode_0xB0() {
 uint16_t opcode_0x90() {
     if ((flag_c) == 0) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0x90].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
@@ -1165,6 +1167,7 @@ uint16_t opcode_0x90() {
 uint16_t opcode_0xF0() {
     if ((flag_z) == 1) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0xF0].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
@@ -1173,6 +1176,7 @@ uint16_t opcode_0xF0() {
 uint16_t opcode_0xD0() {
     if ((flag_z) == 0) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0xD0].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
@@ -1181,6 +1185,7 @@ uint16_t opcode_0xD0() {
 uint16_t opcode_0x70() {
     if ((flag_v) == 1) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0x70].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
@@ -1189,6 +1194,7 @@ uint16_t opcode_0x70() {
 uint16_t opcode_0x50() {
     if ((flag_v) == 0) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0x50].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
@@ -1197,6 +1203,7 @@ uint16_t opcode_0x50() {
 uint16_t opcode_0x30() {
     if ((flag_n) == 1) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0x30].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     }
@@ -1205,6 +1212,7 @@ uint16_t opcode_0x30() {
 uint16_t opcode_0x10() {
     if ((flag_n) == 0) Branch_Taken();
     else {
+        register_pc = register_pc + opcode_info[0x10].length;
         Fetch_Immediate(1);
         Begin_Fetch_Next_Opcode();
     } 

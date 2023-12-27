@@ -275,93 +275,95 @@ bool check_for_CLK_activity();
 void setup();
 #line 396 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 ADDR_MODE internal_address_check(int32_t local_address);
-#line 416 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 410 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+String flag_status(void);
+#line 429 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK0_falling_edge();
-#line 423 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 436 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK0_rising_edge();
-#line 434 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 447 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void sample_at_CLK_rising_edge();
-#line 476 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 489 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK_falling_edge();
-#line 488 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 501 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void send_address(uint32_t local_address);
-#line 521 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 534 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void start_read(uint32_t local_address, bool assert_sync);
-#line 548 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 561 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t finish_read_byte();
-#line 582 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 595 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t read_byte(uint16_t local_address, bool assert_sync);
-#line 645 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 658 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void write_byte(uint16_t local_address, uint8_t local_write_data);
-#line 695 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-void push(uint8_t push_data);
-#line 701 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-uint8_t pop();
 #line 708 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+void push(uint8_t push_data);
+#line 714 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+uint8_t pop();
+#line 721 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Calc_Flags_NEGATIVE_ZERO(uint8_t local_data);
-#line 719 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 732 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t Sign_Extend16(uint16_t reg_data);
-#line 727 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 740 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Begin_Fetch_Next_Opcode();
-#line 736 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 749 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Immediate(uint8_t offset);
-#line 741 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-uint8_t Fetch_ZeroPage();
-#line 746 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-uint8_t Fetch_ZeroPage_X();
 #line 754 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+uint8_t Fetch_ZeroPage();
+#line 759 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+uint8_t Fetch_ZeroPage_X();
+#line 767 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_ZeroPage_Y();
-#line 762 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 775 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t Calculate_Absolute();
-#line 771 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 784 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute();
-#line 780 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 793 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute_X(uint8_t page_cross_check);
-#line 795 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 808 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute_Y(uint8_t page_cross_check);
-#line 810 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 823 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Indexed_Indirect_X();
-#line 824 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 837 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check);
-#line 841 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-void Write_ZeroPage(uint8_t local_data);
-#line 847 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-void Write_Absolute(uint8_t local_data);
 #line 854 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+void Write_ZeroPage(uint8_t local_data);
+#line 860 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+void Write_Absolute(uint8_t local_data);
+#line 867 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage_X(uint8_t local_data);
-#line 861 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 874 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage_Y(uint8_t local_data);
-#line 868 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 881 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute_X(uint8_t local_data);
-#line 879 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 892 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute_Y(uint8_t local_data);
-#line 894 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-void Write_Indexed_Indirect_X(uint8_t local_data);
 #line 907 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
-void Write_Indexed_Indirect_Y(uint8_t local_data);
+void Write_Indexed_Indirect_X(uint8_t local_data);
 #line 920 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+void Write_Indexed_Indirect_Y(uint8_t local_data);
+#line 933 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Double_WriteBack(uint8_t local_data);
-#line 929 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 942 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void reset_sequence();
-#line 961 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 974 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void nmi_handler();
-#line 989 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1002 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void irq_handler(uint8_t opcode_is_brk);
-#line 1023 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1036 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_next_instruction(uint16_t pc, uint8_t opcode);
-#line 1053 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1066 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_registers();
-#line 1061 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1076 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_info();
-#line 1067 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1082 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_command();
-#line 1095 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1110 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_arg(String args, uint8_t arg_number);
-#line 1121 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1136 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String parse_next_arg(String &_src, String &remainder);
-#line 1152 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1165 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 ENUM_RUN_MODE process_command(String input);
-#line 1349 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1362 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void loop();
 #line 270 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 bool check_for_CLK_activity() {
@@ -504,6 +506,19 @@ inline ADDR_MODE internal_address_check(int32_t local_address) {
     return All_External;
 }
 
+String flag_status(void) {
+    String s;
+
+    s = s + (flag_c ? "C" : "-");
+    s = s + (flag_z ? "Z" : "-");
+    s = s + (flag_i ? "I" : "-");
+    s = s + (flag_d ? "D" : "-");
+    s = s + (flag_b ? "B" : "-");
+    s = s + (flag_v ? "V" : "-");
+    s = s + (flag_n ? "N" : "-");
+
+    return(s);
+}
 
 
 // Clock edge detection.
@@ -1153,6 +1168,8 @@ void display_registers() {
     Serial.println(buf);
     sprintf(buf, "            PC=%04X, SP=%04X", register_pc, register_sp_fixed);
     Serial.println(buf);
+    sprintf(buf, "            Flags: %s", flag_status().c_str());
+    Serial.println(buf);
 }
 
 void display_info() {
@@ -1243,8 +1260,6 @@ String parse_next_arg(String &_src, String &remainder) {
     return arg;
 }
 
-
-void(* resetFunc) (void) = 0;//declare reset function at address 0
 
 ENUM_RUN_MODE process_command(String input) {
 
@@ -1499,6 +1514,23 @@ void loop() {
                     temp_pc = register_pc;
                 }
             } while (run_mode == WAITING);
+        }
+        else {
+            while (Serial.available() > 0) {
+                // read the incoming byte:
+                char b = Serial.read();
+
+                switch(b) {
+                    case 0x1B:
+                        run_mode = WAITING;
+                }
+            }
+        }
+
+        if (run_mode == WAITING) {
+            // just transitioned to WAITING while running...
+            // skip the rest of this loop
+            continue;
         }
 
         if (run_mode == RESETTING) {

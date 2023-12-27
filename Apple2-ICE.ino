@@ -407,6 +407,19 @@ inline ADDR_MODE internal_address_check(int32_t local_address) {
     return All_External;
 }
 
+String flag_status(void) {
+    String s;
+
+    s = s + (flag_c ? "C" : "-");
+    s = s + (flag_z ? "Z" : "-");
+    s = s + (flag_i ? "I" : "-");
+    s = s + (flag_d ? "D" : "-");
+    s = s + (flag_b ? "B" : "-");
+    s = s + (flag_v ? "V" : "-");
+    s = s + (flag_n ? "N" : "-");
+
+    return(s);
+}
 
 
 // Clock edge detection.
@@ -1056,6 +1069,8 @@ void display_registers() {
     Serial.println(buf);
     sprintf(buf, "            PC=%04X, SP=%04X", register_pc, register_sp_fixed);
     Serial.println(buf);
+    sprintf(buf, "            Flags: %s", flag_status().c_str());
+    Serial.println(buf);
 }
 
 void display_info() {
@@ -1400,6 +1415,23 @@ void loop() {
                     temp_pc = register_pc;
                 }
             } while (run_mode == WAITING);
+        }
+        else {
+            while (Serial.available() > 0) {
+                // read the incoming byte:
+                char b = Serial.read();
+
+                switch(b) {
+                    case 0x1B:
+                        run_mode = WAITING;
+                }
+            }
+        }
+
+        if (run_mode == WAITING) {
+            // just transitioned to WAITING while running...
+            // skip the rest of this loop
+            continue;
         }
 
         if (run_mode == RESETTING) {
