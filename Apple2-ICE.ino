@@ -261,6 +261,7 @@ const word CMD_Test = command_int("tt");   // tt -- TEST operation
 const word CMD_NOP = 0;
 
 word breakpoint = 0;
+word runto_address = 0;
 bool pc_trace = false;
 unsigned pc_trace_index;
 
@@ -1045,36 +1046,7 @@ void display_next_instruction(uint16_t pc, uint8_t opcode) {
 	uint8_t op1 = read_byte(pc+1, false);
 	uint8_t op2 = read_byte(pc+2, false);
 
-	Serial.println(decode_opcode(opcode, op1, op2).c_str());
-	
-
-#if 0
-    uint8_t length = opcode_info[opcode].length;
-    String op      = opcode_info[opcode].opcode;
-    switch (length) {
-        case 1:
-        {
-            sprintf(buffer, "[%04X] %02X        %s", pc, opcode, op.c_str());
-            break;
-        }
-        case 2:
-        {
-            uint8_t op1 = read_byte(pc+1, false);
-            sprintf(buffer, "[%04X] %02X %02X     %s %02X", pc, opcode, op1, op.c_str(), op1);
-            break;
-        }
-        case 3:
-        {
-            uint8_t op1 = read_byte(pc+1, false);
-            uint8_t op2 = read_byte(pc+2, false);
-            sprintf(buffer, "[%04X] %02X %02X %02X  %s %02X%02X", 
-                pc, opcode, op1, op2, op.c_str(), op2, op1);
-            break;
-        }
-    }
-
-    Serial.println(buffer);
-#endif
+	Serial.println(String(pc,HEX) + ": " + decode_opcode(opcode, op1, op2));
 }
 
 void display_registers() {
@@ -1184,7 +1156,7 @@ uint16_t print_instruction(uint16_t address) {
         operands[i] = read_byte(address + 1 + i, false);
 
     String s = decode_opcode(opcode, operands[0], operands[1]);
-    Serial.println(s);
+    Serial.println(String(address,HEX) + ": " + s);
 
     return(address + instr_length);
 }
@@ -1334,7 +1306,8 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_GO:
             run_mode = RUNNING;
             if (arg1.length()) {
-                register_pc = strtoul(arg1.c_str(), 0, 16);
+                runto_address = strtoul(arg1.c_str(), 0, 16);
+                Serial.println("Breakpoint set to $" + String(breakpoint, HEX));
             }
             break;
 
@@ -1468,8 +1441,13 @@ void loop() {
         //============================================================================
         //  ICE interface code
         //
-        if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint)) {
+        if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint) {
             run_mode = WAITING;
+        }
+
+        if (runto_address && (run_mode==RUNNING) && (register_pc==runto_address) {
+            run_mode = WAITING;
+            runto_address = 0;
         }
 
         if (run_mode != RUNNING) {
@@ -2321,9 +2299,7 @@ void loop() {
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0);
 
-        char buf[32];
-        sprintf(buf, "%04X", next_pc);
-        Serial.println(buf);
+        // Move to next instruction
         register_pc = next_pc;
     }
 }

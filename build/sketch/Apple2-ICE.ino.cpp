@@ -359,23 +359,23 @@ void nmi_handler();
 void irq_handler(uint8_t opcode_is_brk);
 #line 1044 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_next_instruction(uint16_t pc, uint8_t opcode);
-#line 1080 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1051 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_registers();
-#line 1090 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1061 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_info();
-#line 1096 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1067 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_command();
-#line 1124 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1095 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_arg(String args, uint8_t arg_number);
-#line 1150 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1121 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String parse_next_arg(String &_src, String &remainder);
-#line 1178 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1149 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t print_instruction(uint16_t address);
-#line 1192 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1163 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void list_instructions(uint16_t addr, uint8_t count);
-#line 1201 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1172 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 ENUM_RUN_MODE process_command(String input);
-#line 1445 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1417 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void loop();
 #line 278 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 bool check_for_CLK_activity() {
@@ -1148,36 +1148,7 @@ void display_next_instruction(uint16_t pc, uint8_t opcode) {
 	uint8_t op1 = read_byte(pc+1, false);
 	uint8_t op2 = read_byte(pc+2, false);
 
-	Serial.println(decode_opcode(opcode, op1, op2).c_str());
-	
-
-#if 0
-    uint8_t length = opcode_info[opcode].length;
-    String op      = opcode_info[opcode].opcode;
-    switch (length) {
-        case 1:
-        {
-            sprintf(buffer, "[%04X] %02X        %s", pc, opcode, op.c_str());
-            break;
-        }
-        case 2:
-        {
-            uint8_t op1 = read_byte(pc+1, false);
-            sprintf(buffer, "[%04X] %02X %02X     %s %02X", pc, opcode, op1, op.c_str(), op1);
-            break;
-        }
-        case 3:
-        {
-            uint8_t op1 = read_byte(pc+1, false);
-            uint8_t op2 = read_byte(pc+2, false);
-            sprintf(buffer, "[%04X] %02X %02X %02X  %s %02X%02X", 
-                pc, opcode, op1, op2, op.c_str(), op2, op1);
-            break;
-        }
-    }
-
-    Serial.println(buffer);
-#endif
+	Serial.println(String(pc,HEX) + ": " + decode_opcode(opcode, op1, op2));
 }
 
 void display_registers() {
@@ -1287,7 +1258,7 @@ uint16_t print_instruction(uint16_t address) {
         operands[i] = read_byte(address + 1 + i, false);
 
     String s = decode_opcode(opcode, operands[0], operands[1]);
-    Serial.println(s);
+    Serial.println(String(address,HEX) + ": " + s);
 
     return(address + instr_length);
 }
@@ -1437,7 +1408,8 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_GO:
             run_mode = RUNNING;
             if (arg1.length()) {
-                register_pc = strtoul(arg1.c_str(), 0, 16);
+                breakpoint = strtoul(arg1.c_str(), 0, 16);
+                Serial.println("Breakpoint set to $" + String(breakpoint, HEX));
             }
             break;
 
@@ -2424,9 +2396,7 @@ void loop() {
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0);
 
-        char buf[32];
-        sprintf(buf, "%04X", next_pc);
-        Serial.println(buf);
+        // Move to next instruction
         register_pc = next_pc;
     }
 }

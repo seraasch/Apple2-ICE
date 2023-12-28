@@ -996,8 +996,7 @@ void display_next_instruction(uint16_t pc, uint8_t opcode) {
  uint8_t op1 = read_byte(pc+1, false);
  uint8_t op2 = read_byte(pc+2, false);
 
- Serial.println(decode_opcode(opcode, op1, op2).c_str());
-# 1078 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+ Serial.println(String(pc,16) + ": " + decode_opcode(opcode, op1, op2));
 }
 
 void display_registers() {
@@ -1107,7 +1106,7 @@ uint16_t print_instruction(uint16_t address) {
         operands[i] = read_byte(address + 1 + i, false);
 
     String s = decode_opcode(opcode, operands[0], operands[1]);
-    Serial.println(s);
+    Serial.println(String(address,16) + ": " + s);
 
     return(address + instr_length);
 }
@@ -1257,7 +1256,8 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_GO:
             run_mode = RUNNING;
             if (arg1.length()) {
-                register_pc = strtoul(arg1.c_str(), 0, 16);
+                breakpoint = strtoul(arg1.c_str(), 0, 16);
+                Serial.println("Breakpoint set to $" + String(breakpoint, 16));
             }
             break;
 
@@ -2244,9 +2244,7 @@ void loop() {
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(39, 0);
 
-        char buf[32];
-        sprintf(buf, "%04X", next_pc);
-        Serial.println(buf);
+        // Move to next instruction
         register_pc = next_pc;
     }
 }

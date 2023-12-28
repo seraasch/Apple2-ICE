@@ -67,6 +67,10 @@ String decode_opcode(uint8_t op, uint8_t op1, uint8_t op2) {
 }
 
 void initialize_opcode_info() {
+
+	for (int i=0; i<=255; i++)
+		opcode_info[i] = {"---","",0,1};
+		
 	opcode_info[0x00] = {"BRK","","B",7,1};
 	opcode_info[0x01] = {"ORA","(ind,X)","SZ",6,2};
 	opcode_info[0x05] = {"ORA","zpg","SZ",3,2};
