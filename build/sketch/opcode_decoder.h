@@ -1,7 +1,7 @@
 #line 1 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\opcode_decoder.h"
 
 
-// OPCODE,MNEMONIC,OPERANDS,FLAGS,CYCLES,LENGTH
+// OPCODE,MNEMONIC,operands ==FLAGS,CYCLES,LENGTH
 
 struct OpDecoder {
 	String opcode;
@@ -11,7 +11,60 @@ struct OpDecoder {
 	uint8_t length;
 };
 
+
 OpDecoder opcode_info[256];
+
+String decode_opcode(uint8_t op, uint8_t op1, uint8_t op2) {
+	OpDecoder *instr = &opcode_info[op];
+
+	String s;
+	
+	if (instr->length == 2) {
+		String operand = String(op1, HEX);
+		if (instr->operands == "#") {
+			s = "#$" + operand;
+		}
+		if ((instr->operands == "zpg")
+			|| (instr->operands == "rel")) {
+			s = "$" + operand;
+		}
+		if (instr->operands == "(ind,X)") {
+			s = "($" + operand + ",X)"; 
+		}
+		if (instr->operands == "(ind),Y)") {
+			s = "($" + operand + "),Y"; 
+		}
+		if (instr->operands == "zpg,X") {
+			s = "$" + operand + ",X"; 
+		}
+		if (s.length() == 0) {
+			s = "<unknown_format: " + instr->operands + ">";
+		}
+	}
+	
+	if (instr->length == 3) {
+		String operand1 = String(op1, HEX);
+		String operand2 = String(op2, HEX);
+	
+		if (instr->operands == "abs") {
+			s = "$" + operand2 + operand1; 
+		}
+		if (instr->operands == "abs,X") {
+			s = "$" + operand2 + operand1 + ",X"; 
+		}
+		if (instr->operands == "abs,Y") {
+			s = "$" + operand2 + operand1 + ",Y"; 
+		}
+		if (instr->operands == "(ind)") {
+			s = "($" + operand2 + operand1 + ")"; 
+		}
+		if (s.length() == 0) {
+			s = "<unknown_format: " + instr->operands + ">";
+		}
+	}
+	
+	return(instr->opcode + " " + s);
+}
 
 void initialize_opcode_info() {
 	opcode_info[0x00] = {"BRK","","B",7,1};

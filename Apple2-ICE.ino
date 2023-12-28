@@ -251,6 +251,9 @@ const word CMD_RD = command_int("rd");    // RD - Read from memory
 const word CMD_WR = command_int("wr");    // WR - Write to memory
 const word CMD_DR = command_int("dr");    // DR - Display registers
 const word CMD_SR = command_int("sr");    // SR - Display individual register (pc, a, x, y)
+const word CMD_TR = command_int("tr");    // TR - Enable PC Tracing
+const word CMD_FE = command_int("fe");    // FE - Execution fencing
+const word CMD_LI = command_int("li");    // LI - List instructions
 const word CMD_IN = command_int("in");    // IN - Display info
 const word CMD_QM = command_int("?\0");   // ?  - Help
 const word CMD_HE = command_int("h\0");   // H  - Help
@@ -258,6 +261,11 @@ const word CMD_Test = command_int("tt");   // tt -- TEST operation
 const word CMD_NOP = 0;
 
 word breakpoint = 0;
+bool pc_trace = false;
+unsigned pc_trace_index;
+
+bool run_fence = false;
+uint16_t run_fence_low, run_fence_high;
 
 enum ENUM_RUN_MODE {WAITING=0, SINGLE_STEP, RUNNING, RESETTING}  run_mode;
 
@@ -1034,8 +1042,13 @@ void irq_handler(uint8_t opcode_is_brk) {
 // --------------------------------------------------------------------------------------------------
 
 void display_next_instruction(uint16_t pc, uint8_t opcode) {
-    char buffer[32];
+	uint8_t op1 = read_byte(pc+1, false);
+	uint8_t op2 = read_byte(pc+2, false);
 
+	Serial.println(decode_opcode(opcode, op1, op2).c_str());
+	
+
+#if 0
     uint8_t length = opcode_info[opcode].length;
     String op      = opcode_info[opcode].opcode;
     switch (length) {
@@ -1061,6 +1074,7 @@ void display_next_instruction(uint16_t pc, uint8_t opcode) {
     }
 
     Serial.println(buffer);
+#endif
 }
 
 void display_registers() {
@@ -1161,6 +1175,28 @@ String parse_next_arg(String &_src, String &remainder) {
     return arg;
 }
 
+uint16_t print_instruction(uint16_t address) {
+    uint8_t opcode = read_byte(address, false);
+    uint8_t instr_length = opcode_info[opcode].length;
+
+    uint8_t operands[2] = {0, 0};
+    for (uint8_t i=0; i<instr_length-1; i++)
+        operands[i] = read_byte(address + 1 + i, false);
+
+    String s = decode_opcode(opcode, operands[0], operands[1]);
+    Serial.println(s);
+
+    return(address + instr_length);
+}
+
+void list_instructions(uint16_t addr, uint8_t count) {
+    uint16_t next_pc = addr;
+    for (uint8_t i=0; i<count; i++) {
+        // print the instruction at next_pc and return the address 
+        // of the following instruction
+        next_pc = print_instruction(next_pc);
+    }
+}
 
 ENUM_RUN_MODE process_command(String input) {
 
@@ -1187,6 +1223,35 @@ ENUM_RUN_MODE process_command(String input) {
     switch (cmd_int) {
         case CMD_NOP:
             //  User entered a zero-length line at prompt
+            break;
+
+		case CMD_TR:
+			pc_trace = !pc_trace;
+            if (pc_trace)
+                pc_trace_index = 0;
+			break;
+
+        case CMD_LI:
+            switch ((arg1.length()>0) + (arg2.length()>0)) {
+                case 0:  // No arguments - print 16 instructions
+                    {
+                        list_instructions(register_pc, 16);
+                    }
+                    break;
+                case 1:  // One argument - print 16 instructions starting at given address
+                    {
+                        uint16_t start_address = strtol(arg1.c_str(), 0, 16);
+                        list_instructions(start_address, 16);
+                    }
+                    break;
+                case 2:  // Two arguments - Print instructions starting at address, count
+                    {
+                        uint16_t start_address = strtol(arg1.c_str(), 0, 16);
+                        uint8_t count = strtol(arg2.c_str(), 0, 8);
+                        list_instructions(start_address, count);
+                    }
+                    break;
+            }
             break;
 
         case CMD_RS:
@@ -1321,6 +1386,24 @@ ENUM_RUN_MODE process_command(String input) {
             run_mode = WAITING;
             break;
 
+		case CMD_FE:
+			{
+				if (run_fence) {
+					run_fence = false;
+					Serial.println("Run fence disabled");
+				}
+				else {
+					run_fence = true;
+					run_fence_low  = strtoul(arg1.c_str(), 0, 16);
+					run_fence_high = strtoul(arg2.c_str(), 0, 16);
+					
+					char buf[64];
+					sprintf(buf, "Run fence enabled for range $%04X to $%04X", run_fence_low, run_fence_high);
+					Serial.println(buf);
+				}
+			}
+			break;
+			
         //
         //  Command:  WR <addr> <value> (<value> ...)
         //
@@ -1440,9 +1523,25 @@ void loop() {
             break;
         }
 
+		if (run_fence) {
+			if (register_pc < run_fence_low || register_pc > run_fence_high) {
+				String s = "EXECPTION: Attempt to execute outside of the run-fence (PC=" + String(register_pc, HEX) + ")";
+				Serial.println(s);
+				run_mode = WAITING;
+				continue;
+			}
+		}
+
         // For SS mode, turn on the SYNC signal for EVERY INSTRUCTION
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0x1);
+
+        if (pc_trace) {
+            String s = String(pc_trace_index) + ": " + String(register_pc, HEX);
+            Serial.println(s);
+
+            pc_trace_index++;
+        }
 
 		uint16_t next_pc = 0;
         switch (next_instruction) {
