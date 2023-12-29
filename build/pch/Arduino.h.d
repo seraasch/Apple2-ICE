@@ -1,5 +1,5 @@
-c:\Users\sraas\Repositories\Apple2-ICE\build\pch\Arduino.h.gch: \
- c:\Users\sraas\Repositories\Apple2-ICE\build\pch\Arduino.h \
+C:\Users\sraas\Repositories\Apple2-ICE\build\pch\Arduino.h.gch: \
+ C:\Users\sraas\Repositories\Apple2-ICE\build\pch\Arduino.h \
  C:\Users\sraas\AppData\Local\Arduino15\packages\teensy\hardware\avr\1.58.1\cores\teensy4/WProgram.h \
  C:\Users\sraas\AppData\Local\Arduino15\packages\teensy\hardware\avr\1.58.1\cores\teensy4/avr/pgmspace.h \
  C:\Users\sraas\AppData\Local\Arduino15\packages\teensy\hardware\avr\1.58.1\cores\teensy4/avr/interrupt.h \

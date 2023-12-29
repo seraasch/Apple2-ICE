@@ -75,6 +75,7 @@
 
 #include <stdint.h>
 
+#include "opcode_decoder.h"
 
 // Teensy 4.1 pin assignments
 //
@@ -250,6 +251,9 @@ const word CMD_RD = command_int("rd");    // RD - Read from memory
 const word CMD_WR = command_int("wr");    // WR - Write to memory
 const word CMD_DR = command_int("dr");    // DR - Display registers
 const word CMD_SR = command_int("sr");    // SR - Display individual register (pc, a, x, y)
+const word CMD_TR = command_int("tr");    // TR - Enable PC Tracing
+const word CMD_FE = command_int("fe");    // FE - Execution fencing
+const word CMD_LI = command_int("li");    // LI - List instructions
 const word CMD_IN = command_int("in");    // IN - Display info
 const word CMD_QM = command_int("?\0");   // ?  - Help
 const word CMD_HE = command_int("h\0");   // H  - Help
@@ -257,8 +261,14 @@ const word CMD_Test = command_int("tt");   // tt -- TEST operation
 const word CMD_NOP = 0;
 
 word breakpoint = 0;
+word runto_address = 0;
+bool pc_trace = false;
+unsigned pc_trace_index;
 
-enum ENUM_RUN_MODE {WAITING=0, SINGLE_STEP, RUNNING}  run_mode;
+bool run_fence = false;
+uint16_t run_fence_low, run_fence_high;
+
+enum ENUM_RUN_MODE {WAITING=0, SINGLE_STEP, RUNNING, RESETTING}  run_mode;
 
 bool debug_mode = true;
 String last_command = "";
@@ -374,6 +384,7 @@ void setup() {
     }
 
     run_mode = WAITING;
+    initialize_opcode_info();
 }
 
 // --------------------------------------------------------------------------------------------------
@@ -405,6 +416,19 @@ inline ADDR_MODE internal_address_check(int32_t local_address) {
     return All_External;
 }
 
+String flag_status(void) {
+    String s;
+
+    s = s + (flag_c ? "C" : "-");
+    s = s + (flag_z ? "Z" : "-");
+    s = s + (flag_i ? "I" : "-");
+    s = s + (flag_d ? "D" : "-");
+    s = s + (flag_b ? "B" : "-");
+    s = s + (flag_v ? "V" : "-");
+    s = s + (flag_n ? "N" : "-");
+
+    return(s);
+}
 
 
 // Clock edge detection.
@@ -731,19 +755,19 @@ void Begin_Fetch_Next_Opcode() {
 // -------------------------------------------------
 // Addressing Modes
 // -------------------------------------------------
-uint8_t Fetch_Immediate() {
-    register_pc++;
-    return read_byte(register_pc, false);
+uint8_t Fetch_Immediate(uint8_t offset) {
+//    register_pc++;
+    return read_byte(register_pc+offset, false);
 }
 
 uint8_t Fetch_ZeroPage() {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     return read_byte(effective_address, false);
 }
 
 uint8_t Fetch_ZeroPage_X() {
     uint16_t bal;
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(register_pc + 1, false);
     effective_address = (0x00FF & (bal + register_x));
     return read_byte(effective_address, false);
@@ -751,7 +775,7 @@ uint8_t Fetch_ZeroPage_X() {
 
 uint8_t Fetch_ZeroPage_Y() {
     uint16_t bal;
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(register_pc + 1, false);
     effective_address = (0x00FF & (bal + register_y));
     return read_byte(effective_address, false);
@@ -760,8 +784,8 @@ uint8_t Fetch_ZeroPage_Y() {
 uint16_t Calculate_Absolute() {
     uint16_t adl, adh;
 
-    adl = Fetch_Immediate();
-    adh = Fetch_Immediate() << 8;
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
     effective_address = adl + adh;
     return effective_address;
 }
@@ -769,8 +793,8 @@ uint16_t Calculate_Absolute() {
 uint8_t Fetch_Absolute() {
     uint16_t adl, adh;
 
-    adl = Fetch_Immediate();
-    adh = Fetch_Immediate() << 8;
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
     effective_address = adl + adh;
     return read_byte(effective_address, false);
 }
@@ -779,8 +803,8 @@ uint8_t Fetch_Absolute_X(uint8_t page_cross_check) {
     uint16_t bal, bah;
     uint8_t local_data;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_x;
     local_data = read_byte(effective_address, false);
 
@@ -794,8 +818,8 @@ uint8_t Fetch_Absolute_Y(uint8_t page_cross_check) {
     uint16_t bal, bah;
     uint8_t local_data;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_y;
     local_data = read_byte(effective_address, false);
 
@@ -810,7 +834,7 @@ uint8_t Fetch_Indexed_Indirect_X() {
     uint16_t adl, adh;
     uint8_t local_data;
 
-    bal = Fetch_Immediate() + register_x;
+    bal = Fetch_Immediate(1) + register_x;
     read_byte(bal, false);
     adl = read_byte(0xFF & bal, false);
     adh = read_byte(0xFF & (bal + 1), false) << 8;
@@ -823,7 +847,7 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
     uint16_t ial, bah, bal;
     uint8_t local_data;
 
-    ial = Fetch_Immediate();
+    ial = Fetch_Immediate(1);
     bal = read_byte(0xFF & ial, false);
     bah = read_byte(0xFF & (ial + 1), false) << 8;
 
@@ -837,27 +861,27 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
 }
 
 void Write_ZeroPage(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     write_byte(effective_address, local_data);
     return;
 }
 
 void Write_Absolute(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
-    effective_address = (Fetch_Immediate() << 8) + effective_address;
+    effective_address = Fetch_Immediate(1);
+    effective_address = (Fetch_Immediate(2) << 8) + effective_address;
     write_byte(effective_address, local_data);
     return;
 }
 
 void Write_ZeroPage_X(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
     write_byte((0x00FF & (effective_address + register_x)), local_data);
     return;
 }
 
 void Write_ZeroPage_Y(uint8_t local_data) {
-    effective_address = Fetch_Immediate();
+    effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
     write_byte((0x00FF & (effective_address + register_y)), local_data);
     return;
@@ -866,8 +890,8 @@ void Write_ZeroPage_Y(uint8_t local_data) {
 void Write_Absolute_X(uint8_t local_data) {
     uint16_t bal, bah;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_x;
     read_byte(effective_address, false);
     write_byte(effective_address, local_data);
@@ -877,8 +901,8 @@ void Write_Absolute_X(uint8_t local_data) {
 void Write_Absolute_Y(uint8_t local_data) {
     uint16_t bal, bah;
 
-    bal = Fetch_Immediate();
-    bah = Fetch_Immediate() << 8;
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_y;
     read_byte(effective_address, false);
 
@@ -893,7 +917,7 @@ void Write_Indexed_Indirect_X(uint8_t local_data) {
     uint16_t bal;
     uint16_t adl, adh;
 
-    bal = Fetch_Immediate();
+    bal = Fetch_Immediate(1);
     read_byte(bal, false);
     adl = read_byte(0xFF & (bal + register_x), false);
     adh = read_byte(0xFF & (bal + register_x + 1), false) << 8;
@@ -906,7 +930,7 @@ void Write_Indexed_Indirect_Y(uint8_t local_data) {
     uint16_t ial;
     uint16_t bal, bah;
 
-    ial = Fetch_Immediate();
+    ial = Fetch_Immediate(1);
     bal = read_byte(ial, false);
     bah = read_byte(ial + 1, false) << 8;
     effective_address = bah + bal + register_y;
@@ -1019,9 +1043,10 @@ void irq_handler(uint8_t opcode_is_brk) {
 // --------------------------------------------------------------------------------------------------
 
 void display_next_instruction(uint16_t pc, uint8_t opcode) {
-    char buffer[32];
-    sprintf(buffer, "PC:%04X - %02X", pc, opcode);
-    Serial.println(buffer);
+	uint8_t op1 = read_byte(pc+1, false);
+	uint8_t op2 = read_byte(pc+2, false);
+
+	Serial.println(String(pc,HEX) + ": " + decode_opcode(opcode, op1, op2));
 }
 
 void display_registers() {
@@ -1029,6 +1054,8 @@ void display_registers() {
     sprintf(buf, "Registers:  A=%02X, X=%02X, Y=%02X", register_a, register_x, register_y);
     Serial.println(buf);
     sprintf(buf, "            PC=%04X, SP=%04X", register_pc, register_sp_fixed);
+    Serial.println(buf);
+    sprintf(buf, "            Flags: %s", flag_status().c_str());
     Serial.println(buf);
 }
 
@@ -1120,8 +1147,28 @@ String parse_next_arg(String &_src, String &remainder) {
     return arg;
 }
 
+uint16_t print_instruction(uint16_t address) {
+    uint8_t opcode = read_byte(address, false);
+    uint8_t instr_length = opcode_info[opcode].length;
 
-void(* resetFunc) (void) = 0;//declare reset function at address 0
+    uint8_t operands[2] = {0, 0};
+    for (uint8_t i=0; i<instr_length-1; i++)
+        operands[i] = read_byte(address + 1 + i, false);
+
+    String s = decode_opcode(opcode, operands[0], operands[1]);
+    Serial.println(String(address,HEX) + ": " + s);
+
+    return(address + instr_length);
+}
+
+void list_instructions(uint16_t addr, uint8_t count) {
+    uint16_t next_pc = addr;
+    for (uint8_t i=0; i<count; i++) {
+        // print the instruction at next_pc and return the address 
+        // of the following instruction
+        next_pc = print_instruction(next_pc);
+    }
+}
 
 ENUM_RUN_MODE process_command(String input) {
 
@@ -1150,8 +1197,37 @@ ENUM_RUN_MODE process_command(String input) {
             //  User entered a zero-length line at prompt
             break;
 
+		case CMD_TR:
+			pc_trace = !pc_trace;
+            if (pc_trace)
+                pc_trace_index = 0;
+			break;
+
+        case CMD_LI:
+            switch ((arg1.length()>0) + (arg2.length()>0)) {
+                case 0:  // No arguments - print 16 instructions
+                    {
+                        list_instructions(register_pc, 16);
+                    }
+                    break;
+                case 1:  // One argument - print 16 instructions starting at given address
+                    {
+                        uint16_t start_address = strtol(arg1.c_str(), 0, 16);
+                        list_instructions(start_address, 16);
+                    }
+                    break;
+                case 2:  // Two arguments - Print instructions starting at address, count
+                    {
+                        uint16_t start_address = strtol(arg1.c_str(), 0, 16);
+                        uint8_t count = strtol(arg2.c_str(), 0, 8);
+                        list_instructions(start_address, count);
+                    }
+                    break;
+            }
+            break;
+
         case CMD_RS:
-            resetFunc(); // Reset the ICE
+            run_mode = RESETTING;
 
         case CMD_Test:
             sample_at_CLK_rising_edge();
@@ -1230,7 +1306,8 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_GO:
             run_mode = RUNNING;
             if (arg1.length()) {
-                register_pc = strtoul(arg1.c_str(), 0, 16);
+                runto_address = strtoul(arg1.c_str(), 0, 16);
+                Serial.println("Breakpoint set to $" + String(breakpoint, HEX));
             }
             break;
 
@@ -1282,6 +1359,24 @@ ENUM_RUN_MODE process_command(String input) {
             run_mode = WAITING;
             break;
 
+		case CMD_FE:
+			{
+				if (run_fence) {
+					run_fence = false;
+					Serial.println("Run fence disabled");
+				}
+				else {
+					run_fence = true;
+					run_fence_low  = strtoul(arg1.c_str(), 0, 16);
+					run_fence_high = strtoul(arg2.c_str(), 0, 16);
+					
+					char buf[64];
+					sprintf(buf, "Run fence enabled for range $%04X to $%04X", run_fence_low, run_fence_high);
+					Serial.println(buf);
+				}
+			}
+			break;
+			
         //
         //  Command:  WR <addr> <value> (<value> ...)
         //
@@ -1346,8 +1441,13 @@ void loop() {
         //============================================================================
         //  ICE interface code
         //
-        if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint)) {
+        if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint) {
             run_mode = WAITING;
+        }
+
+        if (runto_address && (run_mode==RUNNING) && (register_pc==runto_address) {
+            run_mode = WAITING;
+            runto_address = 0;
         }
 
         if (run_mode != RUNNING) {
@@ -1377,16 +1477,55 @@ void loop() {
                 }
             } while (run_mode == WAITING);
         }
+        else {
+            while (Serial.available() > 0) {
+                // read the incoming byte:
+                char b = Serial.read();
+
+                switch(b) {
+                    case 0x1B:
+                        run_mode = WAITING;
+                }
+            }
+        }
+
+        if (run_mode == WAITING) {
+            // just transitioned to WAITING while running...
+            // skip the rest of this loop
+            continue;
+        }
+
+        if (run_mode == RESETTING) {
+            // Break out of the internal while loop, causing the main loop() 
+            // to be called again, which executes the reset sequence
+            break;
+        }
+
+		if (run_fence) {
+			if (register_pc < run_fence_low || register_pc > run_fence_high) {
+				String s = "EXECPTION: Attempt to execute outside of the run-fence (PC=" + String(register_pc, HEX) + ")";
+				Serial.println(s);
+				run_mode = WAITING;
+				continue;
+			}
+		}
 
         // For SS mode, turn on the SYNC signal for EVERY INSTRUCTION
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0x1);
 
+        if (pc_trace) {
+            String s = String(pc_trace_index) + ": " + String(register_pc, HEX);
+            Serial.println(s);
+
+            pc_trace_index++;
+        }
+
 		uint16_t next_pc = 0;
         switch (next_instruction) {
 
 			case 0x00:
-				next_pc = irq_handler(0x1);
+				irq_handler(0x1);
 				break; // BRK - Break
 			case 0x01:
 				next_pc = opcode_0x01();
@@ -2160,6 +2299,7 @@ void loop() {
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0);
 
+        // Move to next instruction
         register_pc = next_pc;
     }
 }

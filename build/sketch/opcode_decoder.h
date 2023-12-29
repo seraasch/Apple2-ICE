@@ -1,3 +1,4 @@
+#line 1 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\opcode_decoder.h"
 
 
 // OPCODE,MNEMONIC,operands ==FLAGS,CYCLES,LENGTH
