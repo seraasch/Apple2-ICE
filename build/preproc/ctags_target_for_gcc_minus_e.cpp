@@ -212,6 +212,7 @@ const word CMD_Test = (((word)"tt"[0]<<8) + (word)"tt"[1]); // tt -- TEST operat
 const word CMD_NOP = 0;
 
 word breakpoint = 0;
+word runto_address = 0;
 bool pc_trace = false;
 unsigned pc_trace_index;
 
@@ -651,7 +652,9 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data) {
         digitalWriteFast(3, 0x0);
 
         sample_at_CLK_rising_edge();
+
         digitalWriteFast(3, 0x1);
+        digitalWriteFast(12, 0x1);
     }
     return;
 }
@@ -987,7 +990,7 @@ void irq_handler(uint8_t opcode_is_brk) {
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
 
-# 1040 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino" 2
+# 1043 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino" 2
 
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
@@ -1189,15 +1192,15 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_QM:
         case CMD_HE:
             Serial.println(String("Available Commands:\n\r")+
-                           "    IN                      Information about ICE state\n\r"+
-                           "    MD <mode>               Set memory addressing mode (0-3 see below)\n\r"+
-                           "    DR                      Dump registers\n\r"+
-                           "    SS                      Single-step execution\n\r"+
-                           "    GO (<address>)          Begin execution (at optional address)\n\r"+
-                           "    BK <address>            Set execution breakpoint\n\r"+
-                           "    SR <reg> <value>        Set register (PC, A, X, Y) to value\n\r"+
-                           "    RD <address> (<count>)  Read from memory address, displays <count> values\n\r"+
-                           "    WR <address> <value>    Write value to memory address\n\r"+
+                           "    IN                                   Information about ICE state\n\r"+
+                           "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r"+
+                           "    DR                                   Dump registers\n\r"+
+                           "    SS                                   Single-step execution\n\r"+
+                           "    GO [<address>]                       Execute from PC (Stop at optional address)\n\r"+
+                           "    BK <address>                         Set execution breakpoint\n\r"+
+                           "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r"+
+                           "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r"+
+                           "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r"+
                            "\n"+
                            "    Addressing Modes:\n\r"+
                            "       0 - All exernal memory accesses\n\r"+
@@ -1256,7 +1259,7 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_GO:
             run_mode = RUNNING;
             if (arg1.length()) {
-                breakpoint = strtoul(arg1.c_str(), 0, 16);
+                runto_address = strtoul(arg1.c_str(), 0, 16);
                 Serial.println("Breakpoint set to $" + String(breakpoint, 16));
             }
             break;
@@ -1393,6 +1396,11 @@ void loop() {
         //
         if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint)) {
             run_mode = WAITING;
+        }
+
+        if (runto_address && (run_mode==RUNNING) && (register_pc==runto_address)) {
+            run_mode = WAITING;
+            runto_address = 0;
         }
 
         if (run_mode != RUNNING) {

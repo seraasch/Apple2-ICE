@@ -701,7 +701,9 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data) {
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x0);
 
         sample_at_CLK_rising_edge();
+
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x1);
+        digitalWriteFast(PIN_RDWR_n, 0x1);
     }
     return;
 }
@@ -1239,15 +1241,15 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_QM:
         case CMD_HE:
             Serial.println(String("Available Commands:\n\r")+
-                           "    IN                      Information about ICE state\n\r"+
-                           "    MD <mode>               Set memory addressing mode (0-3 see below)\n\r"+
-                           "    DR                      Dump registers\n\r"+
-                           "    SS                      Single-step execution\n\r"+
-                           "    GO (<address>)          Begin execution (at optional address)\n\r"+
-                           "    BK <address>            Set execution breakpoint\n\r"+
-                           "    SR <reg> <value>        Set register (PC, A, X, Y) to value\n\r"+
-                           "    RD <address> (<count>)  Read from memory address, displays <count> values\n\r"+
-                           "    WR <address> <value>    Write value to memory address\n\r"+
+                           "    IN                                   Information about ICE state\n\r"+
+                           "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r"+
+                           "    DR                                   Dump registers\n\r"+
+                           "    SS                                   Single-step execution\n\r"+
+                           "    GO [<address>]                       Execute from PC (Stop at optional address)\n\r"+
+                           "    BK <address>                         Set execution breakpoint\n\r"+
+                           "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r"+
+                           "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r"+
+                           "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r"+
                            "\n"+
                            "    Addressing Modes:\n\r"+
                            "       0 - All exernal memory accesses\n\r"+
@@ -1441,11 +1443,11 @@ void loop() {
         //============================================================================
         //  ICE interface code
         //
-        if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint) {
+        if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint)) {
             run_mode = WAITING;
         }
 
-        if (runto_address && (run_mode==RUNNING) && (register_pc==runto_address) {
+        if (runto_address && (run_mode==RUNNING) && (register_pc==runto_address)) {
             run_mode = WAITING;
             runto_address = 0;
         }

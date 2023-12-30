@@ -263,6 +263,7 @@ const word CMD_Test = command_int("tt");   // tt -- TEST operation
 const word CMD_NOP = 0;
 
 word breakpoint = 0;
+word runto_address = 0;
 bool pc_trace = false;
 unsigned pc_trace_index;
 
@@ -277,107 +278,107 @@ String last_command = "";
 // -------------------------------------------------
 // Check for CLK activity --> determines debug mode
 // -------------------------------------------------
-#line 278 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 279 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 bool check_for_CLK_activity();
-#line 300 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 301 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void setup();
-#line 404 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 405 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 ADDR_MODE internal_address_check(int32_t local_address);
-#line 418 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 419 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String flag_status(void);
-#line 437 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 438 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK0_falling_edge();
-#line 444 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 445 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK0_rising_edge();
-#line 455 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 456 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void sample_at_CLK_rising_edge();
-#line 497 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 498 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void wait_for_CLK_falling_edge();
-#line 509 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 510 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void send_address(uint32_t local_address);
-#line 542 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 543 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void start_read(uint32_t local_address, bool assert_sync);
-#line 569 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 570 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t finish_read_byte();
-#line 603 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 604 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t read_byte(uint16_t local_address, bool assert_sync);
-#line 666 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 667 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void write_byte(uint16_t local_address, uint8_t local_write_data);
-#line 716 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 719 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void push(uint8_t push_data);
-#line 722 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 725 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t pop();
-#line 729 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 732 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Calc_Flags_NEGATIVE_ZERO(uint8_t local_data);
-#line 740 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 743 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t Sign_Extend16(uint16_t reg_data);
-#line 748 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 751 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Begin_Fetch_Next_Opcode();
-#line 757 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 760 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Immediate(uint8_t offset);
-#line 762 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 765 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_ZeroPage();
-#line 767 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 770 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_ZeroPage_X();
-#line 775 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 778 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_ZeroPage_Y();
-#line 783 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 786 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t Calculate_Absolute();
-#line 792 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 795 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute();
-#line 801 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 804 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute_X(uint8_t page_cross_check);
-#line 816 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 819 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Absolute_Y(uint8_t page_cross_check);
-#line 831 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 834 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Indexed_Indirect_X();
-#line 845 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 848 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check);
-#line 862 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 865 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage(uint8_t local_data);
-#line 868 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 871 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute(uint8_t local_data);
-#line 875 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 878 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage_X(uint8_t local_data);
-#line 882 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 885 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_ZeroPage_Y(uint8_t local_data);
-#line 889 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 892 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute_X(uint8_t local_data);
-#line 900 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 903 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Absolute_Y(uint8_t local_data);
-#line 915 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 918 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Indexed_Indirect_X(uint8_t local_data);
-#line 928 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 931 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Write_Indexed_Indirect_Y(uint8_t local_data);
-#line 941 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 944 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void Double_WriteBack(uint8_t local_data);
-#line 950 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 953 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void reset_sequence();
-#line 982 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 985 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void nmi_handler();
-#line 1010 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1013 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void irq_handler(uint8_t opcode_is_brk);
-#line 1044 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1047 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_next_instruction(uint16_t pc, uint8_t opcode);
-#line 1051 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1054 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_registers();
-#line 1061 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1064 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void display_info();
-#line 1067 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1070 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_command();
-#line 1095 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1098 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String get_arg(String args, uint8_t arg_number);
-#line 1121 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1124 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 String parse_next_arg(String &_src, String &remainder);
-#line 1149 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1152 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 uint16_t print_instruction(uint16_t address);
-#line 1163 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1166 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void list_instructions(uint16_t addr, uint8_t count);
-#line 1172 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1175 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 ENUM_RUN_MODE process_command(String input);
-#line 1417 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 1420 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 void loop();
-#line 278 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
+#line 279 "C:\\Users\\sraas\\Repositories\\Apple2-ICE\\Apple2-ICE.ino"
 bool check_for_CLK_activity() {
     unsigned long start = millis();
     while (((GPIO6_DR >> 12) & 0x1) == 0) {  // Teensy 4.1 Pin-24  GPIO6_DR[12]  CLK
@@ -803,7 +804,9 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data) {
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x0);
 
         sample_at_CLK_rising_edge();
+
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x1);
+        digitalWriteFast(PIN_RDWR_n, 0x1);
     }
     return;
 }
@@ -1341,15 +1344,15 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_QM:
         case CMD_HE:
             Serial.println(String("Available Commands:\n\r")+
-                           "    IN                      Information about ICE state\n\r"+
-                           "    MD <mode>               Set memory addressing mode (0-3 see below)\n\r"+
-                           "    DR                      Dump registers\n\r"+
-                           "    SS                      Single-step execution\n\r"+
-                           "    GO (<address>)          Begin execution (at optional address)\n\r"+
-                           "    BK <address>            Set execution breakpoint\n\r"+
-                           "    SR <reg> <value>        Set register (PC, A, X, Y) to value\n\r"+
-                           "    RD <address> (<count>)  Read from memory address, displays <count> values\n\r"+
-                           "    WR <address> <value>    Write value to memory address\n\r"+
+                           "    IN                                   Information about ICE state\n\r"+
+                           "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r"+
+                           "    DR                                   Dump registers\n\r"+
+                           "    SS                                   Single-step execution\n\r"+
+                           "    GO [<address>]                       Execute from PC (Stop at optional address)\n\r"+
+                           "    BK <address>                         Set execution breakpoint\n\r"+
+                           "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r"+
+                           "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r"+
+                           "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r"+
                            "\n"+
                            "    Addressing Modes:\n\r"+
                            "       0 - All exernal memory accesses\n\r"+
@@ -1408,7 +1411,7 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_GO:
             run_mode = RUNNING;
             if (arg1.length()) {
-                breakpoint = strtoul(arg1.c_str(), 0, 16);
+                runto_address = strtoul(arg1.c_str(), 0, 16);
                 Serial.println("Breakpoint set to $" + String(breakpoint, HEX));
             }
             break;
@@ -1545,6 +1548,11 @@ void loop() {
         //
         if (breakpoint && (run_mode==RUNNING) && (register_pc==breakpoint)) {
             run_mode = WAITING;
+        }
+
+        if (runto_address && (run_mode==RUNNING) && (register_pc==runto_address)) {
+            run_mode = WAITING;
+            runto_address = 0;
         }
 
         if (run_mode != RUNNING) {
