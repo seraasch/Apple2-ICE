@@ -59,6 +59,14 @@ struct OpDecoder
     uint8_t max_cycles;
     uint8_t length;
     uint16_t (*operation)(void);
-}
+};
 
 extern opcode_info[];
+
+enum ENUM_RUN_MODE
+{
+    WAITING = 0,
+    SINGLE_STEP,
+    RUNNING,
+    RESETTING
+};
