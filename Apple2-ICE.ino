@@ -269,6 +269,7 @@ bool run_fence = false;
 uint16_t run_fence_low, run_fence_high;
 
 enum ENUM_RUN_MODE {WAITING=0, SINGLE_STEP, RUNNING, RESETTING}  run_mode;
+const char * run_mode_str[] = {"Waiting", "Single-Step", "Running", "Resetting"};
 
 bool debug_mode = true;
 String last_command = "";
@@ -451,11 +452,13 @@ inline void wait_for_CLK0_rising_edge() {
 
 
 // -------------------------------------------------
-// Wait for the CLK1 rising edge and sample signals
+// Wait for the CLK0 falling edge and sample signals
+//     CLK0 is low at start of cycle, sample data on
+//     the falling edge at end of cycle
 // -------------------------------------------------
-inline void sample_at_CLK_rising_edge() {
-    register uint32_t GPIO6_data = 0;
-    register uint32_t GPIO6_data_d1 = 0;
+inline void sample_at_CLK_falling_edge() {
+    uint32_t GPIO6_data = 0;
+    uint32_t GPIO6_data_d1 = 0;
     uint32_t d10, d2, d3, d4, d5, d76;
 
     if (debug_mode)
@@ -483,7 +486,7 @@ inline void sample_at_CLK_rising_edge() {
     d76 = (GPIO6_data & 0x0C000000) >> 20; // Teensy 4.1 Pin-20  GPIO6_DR[27:26]  D7:D6
     direct_datain = d76 | d5 | d4 | d3 | d2 | d10;
 
-    // why are these synchronous?
+    // Sample other inputs
     direct_irq = (GPIO6_data & 0x00002000) >> 13; // Teensy 4.1 Pin-25  GPIO6_DR[13]     IRQ
     direct_ready_n = (GPIO6_data & 0x40000000) >> 30; // Teensy 4.1 Pin-26  GPIO6_DR[30]     READY
     direct_reset = (GPIO6_data & 0x00100000) >> 20; // Teensy 4.1 Pin-40  GPIO6_DR[20]     RESET
@@ -492,23 +495,12 @@ inline void sample_at_CLK_rising_edge() {
     return;
 }
 
-// -------------------------------------------------
-// Wait for the CLK1 falling edge 
-// -------------------------------------------------
-inline void wait_for_CLK_falling_edge() {
-
-    if (!debug_mode) {
-        while (((GPIO6_DR >> 12) & 0x1) == 0) {} // Teensy 4.1 Pin-24  GPIO6_DR[12]  CLK
-        while (((GPIO6_DR >> 12) & 0x1) != 0) {}
-    }
-    return;
-}
 
 // -------------------------------------------------
 // Drive the 6502 Address pins
 // -------------------------------------------------
 inline void send_address(uint32_t local_address) {
-    register uint32_t writeback_data = 0;
+    uint32_t writeback_data = 0;
 
     writeback_data = (0x6DFFFFF3 & GPIO6_DR); // Read in current GPIOx register value and clear the bits we intend to update
     writeback_data = writeback_data | (local_address & 0x8000) << 10; // 6502_Address[15]   TEENSY_PIN23   GPIO6_DR[25]
@@ -547,15 +539,16 @@ inline void start_read(uint32_t local_address, bool assert_sync) {
     if (internal_address_check(current_address) > Read_Internal_Write_External) {  // Either Fast mode
         //last_access_internal_RAM=1;
     } else {
-//        if (last_access_internal_RAM == 1) 
-//            sample_at_CLK_rising_edge();
+//      FIXME:  if (last_access_internal_RAM == 1) 
+//            sample_at_CLK_falling_edge();
 
         last_access_internal_RAM = 0;
 
+        // Wait for the falling edge (first half of cycle) to assert address and RD/WR*
+        wait_for_CLK0_falling_edge();
+
         if ((run_mode != SINGLE_STEP) && assert_sync)
             digitalWriteFast(PIN_SYNC, 0x1);
-
-        wait_for_CLK0_falling_edge();
 
         digitalWriteFast(PIN_RDWR_n, 0x1);
 
@@ -574,14 +567,14 @@ inline uint8_t finish_read_byte() {
         last_access_internal_RAM = 1;
         rv = internal_RAM[current_address];
     } else {
-//        if (last_access_internal_RAM == 1) sample_at_CLK_rising_edge();
+//        if (last_access_internal_RAM == 1) sample_at_CLK_falling_edge();
 //        last_access_internal_RAM = 0;
 
         //
-        //  Nothing happens until the falling clock edge
+        //  Nothing happens until the falling clock edge when READY is active
         //
         do {
-            sample_at_CLK_rising_edge();
+            sample_at_CLK_falling_edge();
         } while (direct_ready_n == 0x1); // Delay a clock cycle until ready is active 
 
         if (internal_address_check(current_address) != All_External) {
@@ -607,18 +600,24 @@ inline uint8_t read_byte(uint16_t local_address, bool assert_sync) {
         last_access_internal_RAM = 1;
         return internal_RAM[local_address];
     } else {
-        // already part of start_read() -- if (last_access_internal_RAM == 1) sample_at_CLK_rising_edge();
+        // already part of start_read() -- if (last_access_internal_RAM == 1) sample_at_CLK_falling_edge();
         // last_access_internal_RAM = 0;
 
-        start_read(local_address, assert_sync && (run_mode != SINGLE_STEP));  // Wait for rising edge, set SYNC, set Address
+        //
+        //  Execute both halves of the read operation
+        //
+        start_read(local_address, assert_sync && (run_mode != SINGLE_STEP));  // set SYNC, set Address
+        finish_read_byte();
+
+#if 0
         do {
-            sample_at_CLK_rising_edge();
+            sample_at_CLK_falling_edge();
         } while (direct_ready_n == 0x1); // Delay a clock cycle until ready is active 
 
         // Always clear this, in case it was set in start_read()
         if (run_mode != SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0x0);
-
+#endif
         // Set Acceleration using Apple II keystrokes
         // For level 0 acceleration enter the following key sequence:  left_arrow  right_arrow  left_arrow   0
         // For level 1 acceleration enter the following key sequence:  left_arrow  right_arrow  left_arrow   1
@@ -664,7 +663,7 @@ inline uint8_t read_byte(uint16_t local_address, bool assert_sync) {
 // -------------------------------------------------
 // Full write cycle with address and data written
 // -------------------------------------------------
-inline void write_byte(uint16_t local_address, uint8_t local_write_data) {
+inline void write_byte(uint16_t local_address, uint8_t local_write_data, bool assert_sync) {
 
     // Always mirror writes to internal RAM, except ROM range at 0xD000 - 0xFFFF
     //
@@ -675,16 +674,20 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data) {
     if (internal_address_check(local_address) > 0x2) {
         last_access_internal_RAM = 1;
     } else {
-//        if (last_access_internal_RAM == 1) sample_at_CLK_rising_edge();
+//        if (last_access_internal_RAM == 1) sample_at_CLK_falling_edge();
 //        last_access_internal_RAM = 0;
 
+        // Start the address on the falling clock edge
         wait_for_CLK0_falling_edge();
 
-        digitalWriteFast(PIN_RDWR_n, 0x0);
+        if ((run_mode != SINGLE_STEP) && assert_sync)
+            digitalWriteFast(PIN_SYNC, 0x1);
 
+        digitalWriteFast(PIN_RDWR_n, 0x0);
         send_address(local_address);
 
-        // Drive the data bus pins from the Teensy to the bus driver which is inactive
+        //
+        // Drive the data bus pins from the Teensy to the bus driver while it is inactive
         //
         digitalWriteFast(PIN_DATAOUT0, (local_write_data & 0x01));
         digitalWriteFast(PIN_DATAOUT1, (local_write_data & 0x02) >> 1);
@@ -695,15 +698,22 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data) {
         digitalWriteFast(PIN_DATAOUT6, (local_write_data & 0x40) >> 6);
         digitalWriteFast(PIN_DATAOUT7, (local_write_data & 0x80) >> 7);
 
-        // During the second CLK phase, enable the data bus output drivers
-        //
-        // wait_for_CLK0_falling_edge();
+        // Wait for the rising clock edge
+        wait_for_CLK0_rising_edge();
+
+        // Enable data onto the data bus
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x0);
 
-        sample_at_CLK_rising_edge();
+        // wait for the falling edge at the end of the cycle and sample inputs
+        //  (we'll ignore the data bus here)
+        sample_at_CLK_falling_edge();
 
+        // disable data bus drivers & clear WR*
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x1);
         digitalWriteFast(PIN_RDWR_n, 0x1);
+
+        // Always clear sync, just in case
+        digitalWriteFast(PIN_SYNC, 0x0);
     }
     return;
 }
@@ -717,7 +727,7 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data) {
 // --------------------------------------------------------------------------------------------------
 
 void push(uint8_t push_data) {
-    write_byte(register_sp_fixed, push_data);
+    write_byte(register_sp_fixed, push_data, false);
     register_sp = register_sp - 1;
     return;
 }
@@ -864,28 +874,28 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
 
 void Write_ZeroPage(uint8_t local_data) {
     effective_address = Fetch_Immediate(1);
-    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data, false);
     return;
 }
 
 void Write_Absolute(uint8_t local_data) {
     effective_address = Fetch_Immediate(1);
     effective_address = (Fetch_Immediate(2) << 8) + effective_address;
-    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data, false);
     return;
 }
 
 void Write_ZeroPage_X(uint8_t local_data) {
     effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
-    write_byte((0x00FF & (effective_address + register_x)), local_data);
+    write_byte((0x00FF & (effective_address + register_x)), local_data, false);
     return;
 }
 
 void Write_ZeroPage_Y(uint8_t local_data) {
     effective_address = Fetch_Immediate(1);
     read_byte(effective_address, false);
-    write_byte((0x00FF & (effective_address + register_y)), local_data);
+    write_byte((0x00FF & (effective_address + register_y)), local_data, false);
     return;
 }
 
@@ -896,7 +906,7 @@ void Write_Absolute_X(uint8_t local_data) {
     bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_x;
     read_byte(effective_address, false);
-    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data, false);
     return;
 }
 
@@ -911,7 +921,7 @@ void Write_Absolute_Y(uint8_t local_data) {
     if ((0xFF00 & effective_address) != (0xFF00 & bah)) {
         read_byte(effective_address, false);
     }
-    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data, false);
     return;
 }
 
@@ -924,7 +934,7 @@ void Write_Indexed_Indirect_X(uint8_t local_data) {
     adl = read_byte(0xFF & (bal + register_x), false);
     adh = read_byte(0xFF & (bal + register_x + 1), false) << 8;
     effective_address = adh + adl;
-    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data, false);
     return;
 }
 
@@ -937,13 +947,13 @@ void Write_Indexed_Indirect_Y(uint8_t local_data) {
     bah = read_byte(ial + 1, false) << 8;
     effective_address = bah + bal + register_y;
     read_byte(effective_address, false);
-    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data, false);
     return;
 }
 
 void Double_WriteBack(uint8_t local_data) {
-    write_byte(effective_address, local_data);
-    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data, false);
+    write_byte(effective_address, local_data, false);
     return;
 }
 
@@ -985,7 +995,7 @@ void reset_sequence() {
 void nmi_handler() {
     uint16_t temp1, temp2;
 
-    sample_at_CLK_rising_edge(); // Begin processing on next CLK edge
+    sample_at_CLK_falling_edge(); // Begin processing on next CLK edge
 
     register_flags = register_flags | 0x20; // Set the flag[5]          
     register_flags = register_flags & 0xEF; // Clear the B flag     
@@ -1013,7 +1023,7 @@ void nmi_handler() {
 void irq_handler(uint8_t opcode_is_brk) {
     uint16_t temp1, temp2;
 
-    sample_at_CLK_rising_edge(); // Begin processing on next CLK edge
+    sample_at_CLK_falling_edge(); // Begin processing on next CLK edge
 
     register_flags = register_flags | 0x20; // Set the flag[5]          
     if (opcode_is_brk == 1) register_flags = register_flags | 0x10; // Set the B flag
@@ -1063,7 +1073,7 @@ void display_registers() {
 
 void display_info() {
     char buf[64];
-    sprintf(buf, "Run-mode = %d, Address-mode = %d\n\rBreakpoint = %04X", run_mode, addr_mode, breakpoint);
+    sprintf(buf, "Run-mode = %s, Address-mode = %d\n\rBreakpoint = %04X", run_mode_str[run_mode], addr_mode, breakpoint);
     Serial.println(buf);
 }
 
@@ -1187,10 +1197,10 @@ ENUM_RUN_MODE process_command(String input) {
 
     word cmd_int = command_int(cmd);
 
-    if (debug_mode && false) {
-        Serial.println("Command and args: \'"+cmd+"\', \'"+arg1+"\', \'"+arg2+"\'");
+    if (debug_mode && true) {
+        // Serial.println("Command and args: \'"+cmd+"\', \'"+arg1+"\', \'"+arg2+"\'");
         char buf[32];
-        sprintf(buf, "Command-int = %04X", cmd_int);
+        // sprintf(buf, "Command-int = %04X", cmd_int);
         Serial.println(buf);
     }
 
@@ -1232,9 +1242,9 @@ ENUM_RUN_MODE process_command(String input) {
             run_mode = RESETTING;
 
         case CMD_Test:
-            sample_at_CLK_rising_edge();
+            sample_at_CLK_falling_edge();
             digitalWriteFast(PIN_SYNC, 0x1);
-            sample_at_CLK_rising_edge();
+            sample_at_CLK_falling_edge();
             digitalWriteFast(PIN_SYNC, 0x0);
             break;
 
@@ -1242,6 +1252,7 @@ ENUM_RUN_MODE process_command(String input) {
         case CMD_HE:
             Serial.println(String("Available Commands:\n\r")+
                            "    IN                                   Information about ICE state\n\r"+
+                           "    RS                                   Reset the CPU\n\r"+                           
                            "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r"+
                            "    DR                                   Dump registers\n\r"+
                            "    SS                                   Single-step execution\n\r"+
@@ -1250,6 +1261,10 @@ ENUM_RUN_MODE process_command(String input) {
                            "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r"+
                            "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r"+
                            "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r"+
+                           "    FE <low_addr> <high_addr>            Execution Fencing\n\r"+
+                           "    LI [<address> [<count>]]             List <count> Instructions starting at <address>\n\r"+
+                           "                                              [default 16 insts from current PC]\n\r"+
+                           "    TR                                   Enable PC tracing\n\r"+                                                      
                            "\n"+
                            "    Addressing Modes:\n\r"+
                            "       0 - All exernal memory accesses\n\r"+
@@ -1349,9 +1364,8 @@ ENUM_RUN_MODE process_command(String input) {
                         Serial.print(s);
                     }
 
-                    digitalWriteFast(PIN_SYNC, 0x1);  // special for manual Reads
-                    byte data = read_byte(addr++, false);
-                    digitalWriteFast(PIN_SYNC, 0x0);
+                    //  Set SYNC while reading byte
+                    byte data = read_byte(addr++, true);
 
                     sprintf(s, "%02X ", data);
                     Serial.print(s);
@@ -1389,14 +1403,12 @@ ENUM_RUN_MODE process_command(String input) {
                 word addr = strtoul(arg1.c_str(), 0, 16);
                 byte data = strtoul(arg2.c_str(), 0, 16);
 
-                digitalWriteFast(PIN_SYNC, 0x1);  //Special for manual writes
-                write_byte(addr, data);
-                digitalWriteFast(PIN_SYNC, 0x0);
+                write_byte(addr, data, true);
 
                 while (remainder.length()) {
                     String d = parse_next_arg(remainder, remainder);
                     data = strtoul(d.c_str(), 0, 16);
-                    write_byte(++addr, data);
+                    write_byte(++addr, data, true);
                 }
                 Serial.println("OK");
             }
@@ -1421,9 +1433,9 @@ void loop() {
 
     // Give Teensy 4.1 a moment
     delay(50);
-    sample_at_CLK_rising_edge();
-    sample_at_CLK_rising_edge();
-    sample_at_CLK_rising_edge();
+    sample_at_CLK_falling_edge();
+    sample_at_CLK_falling_edge();
+    sample_at_CLK_falling_edge();
 
     reset_sequence();
 
