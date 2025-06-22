@@ -316,6 +316,18 @@ void setup()
 
     run_mode = WAITING;
     initialize_opcode_info();
+
+    //============================================
+    //  Reset the machine
+    //
+    // Give Teensy 4.1 a moment
+    delay(50);
+    sample_at_CLK0_falling_edge();
+    sample_at_CLK0_falling_edge();
+    sample_at_CLK0_falling_edge();
+
+    reset_sequence();
+
 }
 
 void push(uint8_t push_data)
@@ -841,238 +853,259 @@ ENUM_RUN_MODE process_command(String input)
     String cmd = parse_next_arg(input, remainder);
     String arg1 = parse_next_arg(remainder, remainder);
     String arg2 = parse_next_arg(remainder, remainder);
+    String arg3 = parse_next_arg(remainder, remainder);
 
     word cmd_int = command_int(cmd);
 
-    if (debug_mode && true)
-    {
-        // Serial.println("Command and args: \'"+cmd+"\', \'"+arg1+"\', \'"+arg2+"\'");
-        char buf[32];
-        // sprintf(buf, "Command-int = %04X", cmd_int);
-        Serial.println(buf);
-    }
+    Serial.println("Command and args: \'"+cmd+"\', \'"+arg1+"\', \'"+arg2+"\', '"+arg3+"'");
+    // char buf[32];
+    // sprintf(buf, "Command-int = %04X", cmd_int);
+    // Serial.println(buf);
 
-    switch (cmd_int)
-    {
-    case CMD_NOP:
-        //  User entered a zero-length line at prompt
-        break;
+    switch (cmd_int) {
+        case CMD_NOP:
+            //  User entered a zero-length line at prompt
+            break;
 
-    case CMD_TR:
-        pc_trace = !pc_trace;
-        if (pc_trace)
-            pc_trace_index = 0;
-        break;
+        case CMD_TR:
+            pc_trace = !pc_trace;
+            if (pc_trace)
+                pc_trace_index = 0;
+            break;
 
-    case CMD_LI:
-        switch ((arg1.length() > 0) + (arg2.length() > 0))
+        case CMD_LI: 
         {
-        case 0: // No arguments - print 16 instructions
+            int nargs = (arg1.length() > 0) + (arg2.length() > 0);
+            if (nargs == 0) {
+                // No arguments - print 16 instructions
+                list_instructions(register_pc, 16);
+            }
+            if (nargs == 1) {
+                // One argument - print 16 instructions starting at given address
+                uint16_t start_address = strtol(arg1.c_str(), 0, 16);
+                list_instructions(start_address, 16);
+            }
+            if (nargs == 2) {
+                // Two arguments - Print instructions starting at address, count
+                uint16_t start_address = strtol(arg1.c_str(), 0, 16);
+                uint8_t count = strtol(arg2.c_str(), 0, 8);
+                list_instructions(start_address, count);
+            }
+            }
+            break;
+
+        case CMD_RS:
+            run_mode = RESETTING;  // may not need this any more
+            reset_sequence();
+            run_mode = WAITING;
+            break;
+
+        case CMD_Test:
+            sample_at_CLK0_falling_edge();
+            digitalWriteFast(PIN_SYNC, 0x1);
+            sample_at_CLK0_falling_edge();
+            digitalWriteFast(PIN_SYNC, 0x0);
+            break;
+
+        case CMD_DE:
+            debug_mode = !debug_mode;
+            break;
+
+        case CMD_FI:
+            if (3 == (arg1.length() > 0) + (arg2.length() > 0) + (arg3.length() > 0)) {
+                uint16_t addr = strtoul(arg1.c_str(), 0, 16);
+                uint16_t count = arg2.toInt();
+                uint8_t value = strtoul(arg3.c_str(), 0, 16) & 0xFF;
+
+                String s = "Filling " + String(count) + " bytes from " + String(addr, HEX) + " with value " + String(value, HEX);
+                Serial.println(s);
+
+                for (int i=0; i<count; i++) {
+                    write_byte(addr+i, value);
+                }
+            }
+            else {
+                Serial.println("Fill command requires <address> <count> <value>");
+            }
+            break;
+
+        case CMD_QM:
+        case CMD_HE:
+            Serial.println(String("Available Commands:\n\r") +
+                        "    IN                                   Information about ICE state\n\r" +
+                        "    RS                                   Reset the CPU\n\r" +
+                        "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r" +
+                        "    DR                                   Dump registers\n\r" +
+                        "    SS                                   Single-step execution\n\r" +
+                        "    GO [<address>]                       Execute from PC (Stop at optional address)\n\r" +
+                        "    BK <address>                         Set execution breakpoint\n\r" +
+                        "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r" +
+                        "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r" +
+                        "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r" +
+                        "    FE <low_addr> <high_addr>            Execution Fencing\n\r" +
+                        "    LI [<address> [<count>]]             List <count> Instructions starting at <address>\n\r" +
+                        "                                              [default 16 insts from current PC]\n\r" +
+                        "    FI <address> <count> <value>         Fill memory with a value\n\r" +
+                        "    DE                                   Toggle application debug mode\n\r" +
+                        "    TR                                   Enable PC tracing\n\r" +
+                        "\n" +
+                        "    Addressing Modes:\n\r" +
+                        "       0 - All exernal memory accesses\n\r" +
+                        "       1 - Reads use cycle accurate internal memory and writes pass through to motherboard\n\r" +
+                        "       2 - Reads accelerated using internal memory and writes pass through to motherboard\n\r" +
+                        "       3 - All read and write accesses use accelerated internal memory\n\r");
+            run_mode = WAITING;
+            break;
+
+        case CMD_MD:
         {
-            list_instructions(register_pc, 16);
+            byte a_mode = strtoul(arg1.c_str(), 0, 10);
+            if (a_mode < 4)
+                addr_mode = (ADDR_MODE)a_mode;
+            else
+                Serial.println("MD error. Illegal argument: " + arg1);
         }
-        break;
-        case 1: // One argument - print 16 instructions starting at given address
+            run_mode = WAITING;
+            break;
+
+        case CMD_DR:
+            display_registers();
+            run_mode = WAITING;
+            break;
+
+        case CMD_SR:
         {
-            uint16_t start_address = strtol(arg1.c_str(), 0, 16);
-            list_instructions(start_address, 16);
-        }
-        break;
-        case 2: // Two arguments - Print instructions starting at address, count
-        {
-            uint16_t start_address = strtol(arg1.c_str(), 0, 16);
-            uint8_t count = strtol(arg2.c_str(), 0, 8);
-            list_instructions(start_address, count);
-        }
-        break;
-        }
-        break;
-
-    case CMD_RS:
-        run_mode = RESETTING;
-
-    case CMD_Test:
-        sample_at_CLK0_falling_edge();
-        digitalWriteFast(PIN_SYNC, 0x1);
-        sample_at_CLK0_falling_edge();
-        digitalWriteFast(PIN_SYNC, 0x0);
-        break;
-
-    case CMD_QM:
-    case CMD_HE:
-        Serial.println(String("Available Commands:\n\r") +
-                       "    IN                                   Information about ICE state\n\r" +
-                       "    RS                                   Reset the CPU\n\r" +
-                       "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r" +
-                       "    DR                                   Dump registers\n\r" +
-                       "    SS                                   Single-step execution\n\r" +
-                       "    GO [<address>]                       Execute from PC (Stop at optional address)\n\r" +
-                       "    BK <address>                         Set execution breakpoint\n\r" +
-                       "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r" +
-                       "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r" +
-                       "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r" +
-                       "    FE <low_addr> <high_addr>            Execution Fencing\n\r" +
-                       "    LI [<address> [<count>]]             List <count> Instructions starting at <address>\n\r" +
-                       "                                              [default 16 insts from current PC]\n\r" +
-                       "    TR                                   Enable PC tracing\n\r" +
-                       "\n" +
-                       "    Addressing Modes:\n\r" +
-                       "       0 - All exernal memory accesses\n\r" +
-                       "       1 - Reads use cycle accurate internal memory and writes pass through to motherboard\n\r" +
-                       "       2 - Reads accelerated using internal memory and writes pass through to motherboard\n\r" +
-                       "       3 - All read and write accesses use accelerated internal memory\n\r");
-        run_mode = WAITING;
-        break;
-
-    case CMD_MD:
-    {
-        byte a_mode = strtoul(arg1.c_str(), 0, 10);
-        if (a_mode < 4)
-            addr_mode = (ADDR_MODE)a_mode;
-        else
-            Serial.println("MD error. Illegal argument: " + arg1);
-    }
-        run_mode = WAITING;
-        break;
-
-    case CMD_DR:
-        display_registers();
-        run_mode = WAITING;
-        break;
-
-    case CMD_SR:
-    {
-        word value = strtoul(arg2.c_str(), 0, 16);
-        // char buf[64]; sprintf(buf, "reg=%s, arg=%s, value=%04X", arg1.c_str(), arg2.c_str(), value); Serial.println(buf);
-        if (arg1 == "pc")
-        {
-            register_pc = value & 0xFFFF;
-        }
-        else if (arg1 == "a")
-        {
-            register_a = value & 0xFF;
-        }
-        else if (arg1 == "x")
-        {
-            register_x = value & 0xFF;
-        }
-        else if (arg1 == "y")
-        {
-            register_y = value & 0xFF;
-        }
-        else
-        {
-            Serial.println("ERROR: unknown register identifier (options: pc, a, x, y)");
-        }
-    }
-        display_registers();
-        run_mode = WAITING;
-        break;
-
-    case CMD_IN:
-        display_registers();
-        display_info();
-        run_mode = WAITING;
-        break;
-
-    case CMD_GO:
-        run_mode = RUNNING;
-        if (arg1.length())
-        {
-            runto_address = strtoul(arg1.c_str(), 0, 16);
-            Serial.println("Breakpoint set to $" + String(breakpoint, HEX));
-        }
-        break;
-
-    case CMD_SS:
-        run_mode = SINGLE_STEP;
-        break;
-
-    case CMD_BK:
-    {
-        word addr = strtoul(arg1.c_str(), 0, 16);
-        breakpoint = addr;
-        Serial.println("OK");
-    }
-        run_mode = WAITING;
-        break;
-
-    //
-    //  Command:  RD <addr> (<count>)
-    //
-    //      Read one or more bytes from <address>. Default count is one.
-    //
-    case CMD_RD:
-    {
-        char s[32];
-        byte count = 1;
-        word addr = strtoul(arg1.c_str(), 0, 16);
-        if (arg2.length())
-        {
-            count = arg2.toInt() & 0xFF;
-        }
-
-        sprintf(s, "[%04X] = ", addr);
-        Serial.print(s);
-
-        for (byte i = 0; i < count; i++)
-        {
-            if ((i != 0) && (i % 8 == 0))
+            word value = strtoul(arg2.c_str(), 0, 16);
+            // char buf[64]; sprintf(buf, "reg=%s, arg=%s, value=%04X", arg1.c_str(), arg2.c_str(), value); Serial.println(buf);
+            if (arg1 == "pc")
             {
-                sprintf(s, "\n\r[%04X] = ", addr);
-                Serial.print(s);
+                register_pc = value & 0xFFFF;
+            }
+            else if (arg1 == "a")
+            {
+                register_a = value & 0xFF;
+            }
+            else if (arg1 == "x")
+            {
+                register_x = value & 0xFF;
+            }
+            else if (arg1 == "y")
+            {
+                register_y = value & 0xFF;
+            }
+            else
+            {
+                Serial.println("ERROR: unknown register identifier (options: pc, a, x, y)");
+            }
+        }
+            display_registers();
+            run_mode = WAITING;
+            break;
+
+        case CMD_IN:
+            display_registers();
+            display_info();
+            run_mode = WAITING;
+            break;
+
+        case CMD_GO:
+            run_mode = RUNNING;
+            if (arg1.length())
+            {
+                runto_address = strtoul(arg1.c_str(), 0, 16);
+                Serial.println("Breakpoint set to $" + String(breakpoint, HEX));
+            }
+            break;
+
+        case CMD_SS:
+            run_mode = SINGLE_STEP;
+            break;
+
+        case CMD_BK:
+        {
+            word addr = strtoul(arg1.c_str(), 0, 16);
+            breakpoint = addr;
+            Serial.println("OK");
+        }
+            run_mode = WAITING;
+            break;
+
+        //
+        //  Command:  RD <addr> (<count>)
+        //
+        //      Read one or more bytes from <address>. Default count is one.
+        //
+        case CMD_RD:
+        {
+            char s[32];
+            byte count = 1;
+            word addr = strtoul(arg1.c_str(), 0, 16);
+            if (arg2.length())
+            {
+                count = arg2.toInt() & 0xFF;
             }
 
-            byte data = read_byte(addr++);
-
-            sprintf(s, "%02X ", data);
+            sprintf(s, "[%04X] = ", addr);
             Serial.print(s);
+
+            for (byte i = 0; i < count; i++)
+            {
+                if ((i != 0) && (i % 8 == 0))
+                {
+                    sprintf(s, "\n\r[%04X] = ", addr);
+                    Serial.print(s);
+                }
+
+                byte data = read_byte(addr++);
+
+                sprintf(s, "%02X ", data);
+                Serial.print(s);
+            }
+            Serial.println("");
         }
-        Serial.println("");
-    }
-        run_mode = WAITING;
+            run_mode = WAITING;
+            break;
+
+        case CMD_FE:
+        {
+            if (run_fence)
+            {
+                run_fence = false;
+                Serial.println("Run fence disabled");
+            }
+            else
+            {
+                run_fence = true;
+                run_fence_low = strtoul(arg1.c_str(), 0, 16);
+                run_fence_high = strtoul(arg2.c_str(), 0, 16);
+
+                char buf[64];
+                sprintf(buf, "Run fence enabled for range $%04X to $%04X", run_fence_low, run_fence_high);
+                Serial.println(buf);
+            }
+        }
         break;
 
-    case CMD_FE:
-    {
-        if (run_fence)
+        //
+        //  Command:  WR <addr> <value> (<value> ...)
+        //
+        //      Write one or more bytes to <address>.
+        //
+        case CMD_WR:
         {
-            run_fence = false;
-            Serial.println("Run fence disabled");
+            word addr = strtoul(arg1.c_str(), 0, 16);
+            byte data = strtoul(arg2.c_str(), 0, 16);
+
+            write_byte(addr, data);
+
+            while (remainder.length())
+            {
+                String d = parse_next_arg(remainder, remainder);
+                data = strtoul(d.c_str(), 0, 16);
+                write_byte(++addr, data);
+            }
+            Serial.println("OK");
         }
-        else
-        {
-            run_fence = true;
-            run_fence_low = strtoul(arg1.c_str(), 0, 16);
-            run_fence_high = strtoul(arg2.c_str(), 0, 16);
-
-            char buf[64];
-            sprintf(buf, "Run fence enabled for range $%04X to $%04X", run_fence_low, run_fence_high);
-            Serial.println(buf);
-        }
-    }
-    break;
-
-    //
-    //  Command:  WR <addr> <value> (<value> ...)
-    //
-    //      Write one or more bytes to <address>.
-    //
-    case CMD_WR:
-    {
-        word addr = strtoul(arg1.c_str(), 0, 16);
-        byte data = strtoul(arg2.c_str(), 0, 16);
-
-        write_byte(addr, data);
-
-        while (remainder.length())
-        {
-            String d = parse_next_arg(remainder, remainder);
-            data = strtoul(d.c_str(), 0, 16);
-            write_byte(++addr, data);
-        }
-        Serial.println("OK");
-    }
         run_mode = WAITING;
         break;
 
@@ -1093,114 +1126,93 @@ ENUM_RUN_MODE process_command(String input)
 void loop()
 {
 
-    // Give Teensy 4.1 a moment
-    delay(50);
-    sample_at_CLK0_falling_edge();
-    sample_at_CLK0_falling_edge();
-    sample_at_CLK0_falling_edge();
+    if (direct_reset == 1)
+        reset_sequence();
 
-    reset_sequence();
+    // Poll for NMI and IRQ
+    //
+    if (nmi_n_old == 0 && direct_nmi == 1)
+        nmi_handler();
+    nmi_n_old = direct_nmi;
+    if (direct_irq == 0x1 && (flag_i) == 0x0)
+        irq_handler(0x0);
 
-    while (1)
+    //        next_instruction = finish_read_byte();
+    next_instruction = read_byte(register_pc);
+
+    //============================================================================
+    //  ICE interface code
+    //
+    if (breakpoint && (run_mode == RUNNING) && (register_pc == breakpoint))
     {
+        run_mode = WAITING;
+    }
 
-        if (direct_reset == 1)
-            reset_sequence();
+    if (runto_address && (run_mode == RUNNING) && (register_pc == runto_address))
+    {
+        run_mode = WAITING;
+        runto_address = 0;
+    }
 
-        // Poll for NMI and IRQ
-        //
-        if (nmi_n_old == 0 && direct_nmi == 1)
-            nmi_handler();
-        nmi_n_old = direct_nmi;
-        if (direct_irq == 0x1 && (flag_i) == 0x0)
-            irq_handler(0x0);
+    if (run_mode != RUNNING)
+    {
+        uint16_t temp_pc = register_pc;
 
-        //        next_instruction = finish_read_byte();
-        next_instruction = read_byte(register_pc);
-
-        //============================================================================
-        //  ICE interface code
-        //
-        if (breakpoint && (run_mode == RUNNING) && (register_pc == breakpoint))
+        do
         {
-            run_mode = WAITING;
-        }
+            display_next_instruction(register_pc, next_instruction);
 
-        if (runto_address && (run_mode == RUNNING) && (register_pc == runto_address))
-        {
-            run_mode = WAITING;
-            runto_address = 0;
-        }
+            String c = get_command();
 
-        if (run_mode != RUNNING)
-        {
-            uint16_t temp_pc = register_pc;
-
-            do
+            if (c.length() == 0 && last_command.length() != 0)
             {
-                display_next_instruction(register_pc, next_instruction);
-
-                String c = get_command();
-
-                if (c.length() == 0 && last_command.length() != 0)
-                {
-                    Serial.println(last_command);
-                    run_mode = process_command(last_command);
-                }
-                else
-                {
-                    Serial.println(" ");
-                    run_mode = process_command(c);
-                    last_command = c;
-                }
-
+                Serial.println(last_command);
+                run_mode = process_command(last_command);
+            }
+            else
+            {
                 Serial.println(" ");
+                run_mode = process_command(c);
+                last_command = c;
+            }
 
-                //  Update the next_instruction, as PC or memory may have changed
-                if ((run_mode != RUNNING) && (register_pc != temp_pc))
-                {
-                    next_instruction = read_byte(register_pc);
-                    temp_pc = register_pc;
-                }
-            } while (run_mode == WAITING);
-        }
-        else
-        {
-            while (Serial.available() > 0)
+            Serial.println(" ");
+
+            //  Update the next_instruction, as PC or memory may have changed
+            if ((run_mode != RUNNING) && (register_pc != temp_pc))
             {
-                // read the incoming byte:
-                char b = Serial.read();
+                next_instruction = read_byte(register_pc);
+                temp_pc = register_pc;
+            }
+        } while (run_mode == WAITING);
+    }
+    else
+    {
+        while (Serial.available() > 0)
+        {
+            // read the incoming byte:
+            char b = Serial.read();
 
-                switch (b)
-                {
-                case 0x1B:
-                    run_mode = WAITING;
-                }
+            switch (b)
+            {
+            case 0x1B:
+                run_mode = WAITING;
             }
         }
+    }
 
-        if (run_mode == WAITING)
-        {
-            // just transitioned to WAITING while running...
-            // skip the rest of this loop
-            continue;
-        }
+    //
+    //  Skip the following code if we're waiting for the user
+    //
+    if (run_mode != WAITING) {
 
-        if (run_mode == RESETTING)
-        {
-            // Break out of the internal while loop, causing the main loop()
-            // to be called again, which executes the reset sequence
-            break;
-        }
-
-        if (run_fence)
-        {
+        if (run_fence) {
             if (register_pc < run_fence_low || register_pc > run_fence_high)
             {
                 String s = "EXECPTION: Attempt to execute outside of the run-fence (PC=" + String(register_pc, HEX) + ")";
                 Serial.println(s);
                 run_mode = WAITING;
-                continue;
+                return;
             }
         }
 
@@ -1208,30 +1220,20 @@ void loop()
         if (run_mode == SINGLE_STEP)
             digitalWriteFast(PIN_SYNC, 0x1);
 
-        if (pc_trace)
-        {
+        if (pc_trace) {
             String s = String(pc_trace_index) + ": " + String(register_pc, HEX);
             Serial.println(s);
 
             pc_trace_index++;
         }
 
-        uint16_t next_pc = 0;
-
-        if (next_instruction == 0)
-        {
-            irq_handler(0x01);
-        }
+        //==============================================================================
+        // If we have a real instruction, execute it now and update the PC,
+        //    otherwise handle the IRQ
+        if (next_instruction != 0)
+            register_pc = opcode_info[next_instruction].operation();
         else
-        {
-            next_pc = opcode_info[next_instruction].operation();
-        }
+            irq_handler(0x01);
 
-        // For SS mode, turn off the SYNC signal after for EVERY INSTRUCTION
-        if (run_mode == SINGLE_STEP)
-            digitalWriteFast(PIN_SYNC, 0);
-
-        // Move to next instruction
-        register_pc = next_pc;
     }
 }
