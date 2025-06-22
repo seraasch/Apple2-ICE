@@ -10,8 +10,6 @@
 
 #include "Apple2-ICE.h"
 
-OpDecoder opcode_info[256];
-
 extern ENUM_RUN_MODE run_mode;
 
 //---------------------------------------------------------------
@@ -95,6 +93,8 @@ uint16_t illegal_opcode()
 {
     Serial.println("ERROR: Illegal instruction");
     run_mode = WAITING;
+
+    return 0;
 }
 
 // -------------------------------------------------
@@ -102,7 +102,7 @@ uint16_t illegal_opcode()
 // -------------------------------------------------
 uint16_t opcode_0x0A()
 {
-    read_byte(register_pc, false);
+    read_byte(register_pc);
     Begin_Fetch_Next_Opcode();
 
     if (0x80 & register_a)
@@ -121,7 +121,7 @@ uint16_t opcode_0x0A()
 // -------------------------------------------------
 uint16_t opcode_0x4A()
 {
-    read_byte(register_pc, false);
+    read_byte(register_pc);
     Begin_Fetch_Next_Opcode();
 
     if (0x01 & register_a)
@@ -143,7 +143,7 @@ uint16_t opcode_0x6A()
 
     uint8_t old_carry_flag = 0;
 
-    read_byte(register_pc, false);
+    read_byte(register_pc);
     Begin_Fetch_Next_Opcode();
 
     old_carry_flag = register_flags << 7; // Shift the old carry flag to bit[8] to be rotated in
@@ -167,7 +167,7 @@ uint16_t opcode_0x2A()
 
     uint8_t old_carry_flag = 0;
 
-    read_byte(register_pc, false);
+    read_byte(register_pc);
     Begin_Fetch_Next_Opcode();
 
     old_carry_flag = 0x1 & register_flags; // Store the old carry flag to be rotated in
@@ -431,55 +431,55 @@ uint16_t opcode_0xF1()
 // -------------------------------------------------
 uint16_t opcode_0xEA()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     return (register_pc + opcode_info[0xEA].length);
 } // 0xEA - NOP
 uint16_t opcode_0x18()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xFE;
     return (register_pc + opcode_info[0x18].length);
 } // 0x18 - CLC - Clear Carry Flag
 uint16_t opcode_0xD8()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xF7;
     return (register_pc + opcode_info[0xD8].length);
 } // 0xD8 - CLD - Clear Decimal Mode
 uint16_t opcode_0x58()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xFB;
     return (register_pc + opcode_info[0x58].length);
 } // 0x58 - CLI - Clear Interrupt Flag
 uint16_t opcode_0xB8()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags & 0xBF;
     return (register_pc + opcode_info[0xB8].length);
 } // 0xB8 - CLV - Clear Overflow Flag
 uint16_t opcode_0x38()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags | 0x01;
     return (register_pc + opcode_info[0x38].length);
 } // 0x38 - SEC - Set Carry Flag
 uint16_t opcode_0x78()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags | 0x04;
     return (register_pc + opcode_info[0x78].length);
 } // 0x78 - SEI - Set Interrupt Flag
 uint16_t opcode_0xF8()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_flags = register_flags | 0x08;
     return (register_pc + opcode_info[0xF8].length);
@@ -490,7 +490,7 @@ uint16_t opcode_0xF8()
 // -------------------------------------------------
 uint16_t opcode_0xCA()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_x = register_x - 1;
     Calc_Flags_NEGATIVE_ZERO(register_x);
@@ -498,7 +498,7 @@ uint16_t opcode_0xCA()
 } // 0xCA - DEX - Decrement X
 uint16_t opcode_0x88()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_y = register_y - 1;
     Calc_Flags_NEGATIVE_ZERO(register_y);
@@ -506,7 +506,7 @@ uint16_t opcode_0x88()
 } // 0x88 - DEY - Decrement Y
 uint16_t opcode_0xE8()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_x = register_x + 1;
     Calc_Flags_NEGATIVE_ZERO(register_x);
@@ -514,7 +514,7 @@ uint16_t opcode_0xE8()
 } // 0xE8 - INX - Increment X
 uint16_t opcode_0xC8()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_y = register_y + 1;
     Calc_Flags_NEGATIVE_ZERO(register_y);
@@ -526,7 +526,7 @@ uint16_t opcode_0xC8()
 // -------------------------------------------------
 uint16_t opcode_0xAA()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_x = register_a;
     Calc_Flags_NEGATIVE_ZERO(register_x);
@@ -534,7 +534,7 @@ uint16_t opcode_0xAA()
 } // 0xAA - TAX - Transfer Accumulator to X
 uint16_t opcode_0xA8()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_y = register_a;
     Calc_Flags_NEGATIVE_ZERO(register_y);
@@ -542,7 +542,7 @@ uint16_t opcode_0xA8()
 } // 0xA8 - TAY - Transfer Accumulator to Y
 uint16_t opcode_0xBA()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_x = register_sp;
     Calc_Flags_NEGATIVE_ZERO(register_x);
@@ -550,7 +550,7 @@ uint16_t opcode_0xBA()
 } // 0xBA - TSX - Transfer Stack Pointer to X
 uint16_t opcode_0x8A()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_a = register_x;
     Calc_Flags_NEGATIVE_ZERO(register_a);
@@ -558,14 +558,14 @@ uint16_t opcode_0x8A()
 } // 0x8A - TXA - Transfer X to Accumulator
 uint16_t opcode_0x9A()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_sp = register_x;
     return (register_pc + opcode_info[0x9A].length);
 } // 0x9A - TXS - Transfer X to Stack Pointer
 uint16_t opcode_0x98()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     Begin_Fetch_Next_Opcode();
     register_a = register_y;
     Calc_Flags_NEGATIVE_ZERO(register_a);
@@ -577,30 +577,30 @@ uint16_t opcode_0x98()
 // -------------------------------------------------
 uint16_t opcode_0x08()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     push(register_flags | 0x30);
     Begin_Fetch_Next_Opcode();
     return (register_pc + opcode_info[0x08].length);
 } // 0x08 - PHP - Push Flags to Stack
 uint16_t opcode_0x48()
 {
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     push(register_a);
     Begin_Fetch_Next_Opcode();
     return (register_pc + opcode_info[0x48].length);
 } // 0x48 - PHA - Push Accumulator to the stack
 uint16_t opcode_0x28()
 {
-    read_byte(register_pc + 1, false);
-    read_byte(register_sp_fixed, false);
+    read_byte(register_pc + 1);
+    read_byte(register_sp_fixed);
     register_flags = (pop() | 0x30);
     Begin_Fetch_Next_Opcode();
     return (register_pc + opcode_info[0x28].length);
 } // 0x28 - PLP - Pop Flags from Stack
 uint16_t opcode_0x68()
 {
-    read_byte(register_pc + 1, false);
-    read_byte(register_sp_fixed, false);
+    read_byte(register_pc + 1);
+    read_byte(register_sp_fixed);
     register_a = pop();
     Calc_Flags_NEGATIVE_ZERO(register_a);
     Begin_Fetch_Next_Opcode();
@@ -1437,7 +1437,7 @@ void Branch_Taken()
     } // Page boundary crossed
 
     register_pc = effective_address;
-    start_read(register_pc, true);
+    start_read(register_pc);
     return;
 }
 uint16_t opcode_0xB0()
@@ -1543,7 +1543,7 @@ uint16_t opcode_0x10()
 uint16_t opcode_0x4C()
 {
     register_pc = Calculate_Absolute();
-    start_read(register_pc, true);
+    start_read(register_pc);
     return (register_pc);
 } // 0x4C - JMP - Jump Absolute
 
@@ -1557,11 +1557,11 @@ uint16_t opcode_0x6C()
 
     lal = Fetch_Immediate(1);
     lah = Fetch_Immediate(2) << 8;
-    adl = read_byte(lah + lal, false);
-    adh = read_byte(lah + lal + 1, false) << 8;
+    adl = read_byte(lah + lal);
+    adh = read_byte(lah + lal + 1) << 8;
     effective_address = adh + adl;
     register_pc = (0xFF00 & adh) + (0x00FF & effective_address); // 6502 page wrapping bug
-    start_read(register_pc, true);
+    start_read(register_pc);
     return (register_pc);
 }
 
@@ -1574,12 +1574,12 @@ uint16_t opcode_0x20()
 
     adl = Fetch_Immediate(1);
     adh = Fetch_Immediate(2) << 8;
-    read_byte(register_sp_fixed, false);
+    read_byte(register_sp_fixed);
     push((0xFF00 & register_pc) >> 8);
 
     push(0x00FF & register_pc);
     register_pc = adh + adl;
-    start_read(register_pc, true);
+    start_read(register_pc);
     return (register_pc);
 }
 
@@ -1591,12 +1591,12 @@ uint16_t opcode_0x40()
     uint16_t pcl, pch;
 
     Fetch_Immediate(1);
-    read_byte(register_sp_fixed, false);
+    read_byte(register_sp_fixed);
     register_flags = pop();
     pcl = pop();
     pch = pop() << 8;
     register_pc = pch + pcl;
-    start_read(register_pc, true);
+    start_read(register_pc);
     return (register_pc);
 }
 
@@ -1608,12 +1608,12 @@ uint16_t opcode_0x60()
     uint16_t pcl, pch;
 
     Fetch_Immediate(1);
-    read_byte(register_sp_fixed, false);
+    read_byte(register_sp_fixed);
     pcl = pop();
     pch = pop() << 8;
     register_pc = pch + pcl + 3;
-    read_byte(register_pc, false);
-    start_read(register_pc, true);
+    read_byte(register_pc);
+    start_read(register_pc);
     return (register_pc);
 }
 
@@ -2469,6 +2469,11 @@ uint16_t opcode_0xAB()
     return (register_pc + opcode_info[0xAB].length);
 } // 0xAB - LAX - Immediate    - Implelented here as a size 2 NOP
 
+uint16_t opcode_0x00()
+{
+    return (register_pc + opcode_info[0x00].length);
+} // 0xAB - LAX - Immediate    - Implelented here as a size 2 NOP
+
 //-------------------------------------------------------------------------
 //  Initialize opcodes once the opcode-execution function has been defined
 //
@@ -2476,157 +2481,157 @@ void initialize_opcode_info()
 {
 
     for (int i = 0; i <= 255; i++)
-        opcode_info[i] = {"---", "", 0, 1, illegal_opcode()};
+        opcode_info[i] = {"---", "", 0, 1, 0, illegal_opcode};
 
-    opcode_info[0x00] = {"BRK", "", "B", 7, 1, opcode_0x00()};
-    opcode_info[0x01] = {"ORA", "(ind,X)", "SZ", 6, 2, opcode_0x01()};
-    opcode_info[0x05] = {"ORA", "zpg", "SZ", 3, 2, opcode_0x05()};
-    opcode_info[0x06] = {"ASL", "zpg", "SZC", 5, 2, opcode_0x06()};
-    opcode_info[0x08] = {"PHP", "", "", 3, 1, opcode_0x08()};
-    opcode_info[0x09] = {"ORA", "#", "SZ", 2, 2, opcode_0x09()};
-    opcode_info[0x0a] = {"ASL", "A", "SZC", 2, 1, opcode_0x0a()};
-    opcode_info[0x0d] = {"ORA", "abs", "SZ", 4, 3, opcode_0x0d()};
-    opcode_info[0x0e] = {"ASL", "abs", "SZC", 6, 3, opcode_0x0e()};
-    opcode_info[0x10] = {"BPL", "rel", "", 2, 2, opcode_0x10()};
-    opcode_info[0x11] = {"ORA", "(ind),Y", "SZ", 5, 2, opcode_0x11()};
-    opcode_info[0x15] = {"ORA", "zpg,X", "SZ", 4, 2, opcode_0x15()};
-    opcode_info[0x16] = {"ASL", "zpg,X", "SZC", 6, 2, opcode_0x16()};
-    opcode_info[0x18] = {"CLC", "", "C", 2, 1, opcode_0x18()};
-    opcode_info[0x19] = {"ORA", "abs,Y", "SZ", 4, 3, opcode_0x19()};
-    opcode_info[0x1d] = {"ORA", "abs,X", "SZ", 4, 3, opcode_0x1d()};
-    opcode_info[0x1e] = {"ASL", "abs,X", "SZC", 7, 3, opcode_0x1e()};
-    opcode_info[0x20] = {"JSR", "abs", "", 6, 3, opcode_0x20()};
-    opcode_info[0x21] = {"AND", "(ind,X)", "SZ", 6, 2, opcode_0x21()};
-    opcode_info[0x24] = {"BIT", "zpg", "NVZ", 3, 2, opcode_0x24()};
-    opcode_info[0x25] = {"AND", "zpg", "SZ", 3, 2, opcode_0x25()};
-    opcode_info[0x26] = {"ROL", "zpg", "SZC", 5, 2, opcode_0x26()};
-    opcode_info[0x28] = {"PLP", "", "", 4, 1, opcode_0x28()};
-    opcode_info[0x29] = {"AND", "#", "SZ", 2, 2, opcode_0x29()};
-    opcode_info[0x2a] = {"ROL", "A", "SZC", 2, 1, opcode_0x2a()};
-    opcode_info[0x2c] = {"BIT", "abs", "NVZ", 4, 3, opcode_0x2c()};
-    opcode_info[0x2d] = {"AND", "abs", "SZ", 4, 3, opcode_0x2d()};
-    opcode_info[0x2e] = {"ROL", "abs", "SZC", 6, 3, opcode_0x2e()};
-    opcode_info[0x30] = {"BMI", "rel", "", 2, 2, opcode_0x30()};
-    opcode_info[0x31] = {"AND", "(ind),Y", "SZ", 5, 2, opcode_0x31()};
-    opcode_info[0x35] = {"AND", "zpg,X", "SZ", 4, 2, opcode_0x35()};
-    opcode_info[0x36] = {"ROL", "zpg,X", "SZC", 6, 2, opcode_0x36()};
-    opcode_info[0x38] = {"SEC", "", "C", 2, 1, opcode_0x38()};
-    opcode_info[0x39] = {"AND", "abs,Y", "SZ", 4, 3, opcode_0x39()};
-    opcode_info[0x3d] = {"AND", "abs,X", "SZ", 4, 3, opcode_0x3d()};
-    opcode_info[0x3e] = {"ROL", "abs,X", "SZC", 7, 3, opcode_0x3e()};
-    opcode_info[0x40] = {"RTI", "", "SZCDVIB", 6, 1, opcode_0x40()};
-    opcode_info[0x41] = {"EOR", "(ind,X)", "SZ", 6, 2, opcode_0x41()};
-    opcode_info[0x45] = {"EOR", "zpg", "SZ", 3, 2, opcode_0x45()};
-    opcode_info[0x46] = {"LSR", "zpg", "SZC", 5, 2, opcode_0x46()};
-    opcode_info[0x48] = {"PHA", "", "", 3, 1, opcode_0x48()};
-    opcode_info[0x49] = {"EOR", "#", "SZ", 2, 2, opcode_0x49()};
-    opcode_info[0x4a] = {"LSR", "A", "SZC", 2, 1, opcode_0x4a()};
-    opcode_info[0x4c] = {"JMP", "abs", "", 3, 3, opcode_0x4c()};
-    opcode_info[0x4d] = {"EOR", "abs", "SZ", 4, 3, opcode_0x4d()};
-    opcode_info[0x4e] = {"LSR", "abs", "SZC", 6, 3, opcode_0x4e()};
-    opcode_info[0x50] = {"BVC", "rel", "", 2, 2, opcode_0x50()};
-    opcode_info[0x51] = {"EOR", "(ind),Y", "SZ", 5, 2, opcode_0x51()};
-    opcode_info[0x55] = {"EOR", "zpg,X", "SZ", 4, 2, opcode_0x55()};
-    opcode_info[0x56] = {"LSR", "zpg,X", "SZC", 6, 2, opcode_0x56()};
-    opcode_info[0x58] = {"CLI", "", "I", 2, 1, opcode_0x58()};
-    opcode_info[0x59] = {"EOR", "abs,Y", "SZ", 4, 3, opcode_0x59()};
-    opcode_info[0x5d] = {"EOR", "abs,X", "SZ", 4, 3, opcode_0x5d()};
-    opcode_info[0x5e] = {"LSR", "abs,X", "SZC", 7, 3, opcode_0x5e()};
-    opcode_info[0x60] = {"RTS", "", "", 6, 1, opcode_0x60()};
-    opcode_info[0x61] = {"ADC", "(ind,X)", "SVZC", 6, 2, opcode_0x61()};
-    opcode_info[0x65] = {"ADC", "zpg", "SVZC", 3, 2, opcode_0x65()};
-    opcode_info[0x66] = {"ROR", "zpg", "SZC", 5, 2, opcode_0x66()};
-    opcode_info[0x68] = {"PLA", "", "", 4, 1, opcode_0x68()};
-    opcode_info[0x69] = {"ADC", "#", "SVZC", 2, 2, opcode_0x69()};
-    opcode_info[0x6a] = {"ROR", "A", "SZC", 2, 1, opcode_0x6a()};
-    opcode_info[0x6c] = {"JMP", "(ind)", "", 5, 3, opcode_0x6c()};
-    opcode_info[0x6d] = {"ADC", "abs", "SVZC", 4, 3, opcode_0x6d()};
-    opcode_info[0x6e] = {"ROR", "abs", "SZC", 6, 3, opcode_0x6e()};
-    opcode_info[0x70] = {"BVS", "rel", "", 4, 2, opcode_0x70()};
-    opcode_info[0x71] = {"ADC", "(ind),Y", "SVZC", 4, 2, opcode_0x71()};
-    opcode_info[0x75] = {"ADC", "zpg,X", "SVZC", 4, 2, opcode_0x75()};
-    opcode_info[0x76] = {"ROR", "zpg,X", "SZC", 6, 2, opcode_0x76()};
-    opcode_info[0x78] = {"SEI", "", "I", 2, 1, opcode_0x78()};
-    opcode_info[0x79] = {"ADC", "abs,Y", "SVZC", 4, 3, opcode_0x79()};
-    opcode_info[0x7d] = {"ADC", "abs,X", "SVZC", 4, 3, opcode_0x7d()};
-    opcode_info[0x7e] = {"ROR", "abs,X", "SZC", 7, 3, opcode_0x7e()};
-    opcode_info[0x81] = {"STA", "(ind,X)", "", 6, 2, opcode_0x81()};
-    opcode_info[0x84] = {"STY", "zpg", "", 3, 2, opcode_0x84()};
-    opcode_info[0x85] = {"STA", "zpg", "", 3, 2, opcode_0x85()};
-    opcode_info[0x86] = {"STX", "zpg", "", 3, 2, opcode_0x86()};
-    opcode_info[0x88] = {"DEY", "", "SZ", 2, 1, opcode_0x88()};
-    opcode_info[0x8a] = {"TXA", "", "SZ", 2, 1, opcode_0x8a()};
-    opcode_info[0x8c] = {"STY", "abs", "", 4, 3, opcode_0x8c()};
-    opcode_info[0x8d] = {"STA", "abs", "", 4, 3, opcode_0x8d()};
-    opcode_info[0x8e] = {"STX", "abs", "", 4, 3, opcode_0x8e()};
-    opcode_info[0x90] = {"BCC", "rel", "", 2, 2, opcode_0x90()};
-    opcode_info[0x91] = {"STA", "(ind),Y", "", 6, 2, opcode_0x91()};
-    opcode_info[0x94] = {"STY", "zpg,X", "", 4, 2, opcode_0x94()};
-    opcode_info[0x95] = {"STA", "zpg,X", "", 4, 2, opcode_0x95()};
-    opcode_info[0x96] = {"STX", "zpg,Y", "", 4, 2, opcode_0x96()};
-    opcode_info[0x98] = {"TYA", "", "SZ", 2, 1, opcode_0x98()};
-    opcode_info[0x99] = {"STA", "abs,Y", "", 5, 3, opcode_0x99()};
-    opcode_info[0x9a] = {"TXS", "", "", 2, 1, opcode_0x9a()};
-    opcode_info[0x9d] = {"STA", "abs,X", "", 5, 3, opcode_0x9d()};
-    opcode_info[0xa0] = {"LDY", "#", "SZ", 2, 2, opcode_0xa0()};
-    opcode_info[0xa1] = {"LDA", "(ind,X)", "SZ", 6, 2, opcode_0xa1()};
-    opcode_info[0xa2] = {"LDX", "#", "SZ", 2, 2, opcode_0xa2()};
-    opcode_info[0xa4] = {"LDY", "zpg", "SZ", 3, 2, opcode_0xa4()};
-    opcode_info[0xa5] = {"LDA", "zpg", "SZ", 3, 2, opcode_0xa5()};
-    opcode_info[0xa6] = {"LDX", "zpg", "SZ", 3, 2, opcode_0xa6()};
-    opcode_info[0xa8] = {"TAY", "", "SZ", 2, 1, opcode_0xa8()};
-    opcode_info[0xa9] = {"LDA", "#", "SZ", 2, 2, opcode_0xa9()};
-    opcode_info[0xaa] = {"TAX", "", "SZ", 2, 1, opcode_0xaa()};
-    opcode_info[0xac] = {"LDY", "abs", "SZ", 4, 3, opcode_0xac()};
-    opcode_info[0xad] = {"LDA", "abs", "SZ", 4, 3, opcode_0xad()};
-    opcode_info[0xae] = {"LDX", "abs", "SZ", 4, 3, opcode_0xae()};
-    opcode_info[0xb0] = {"BCS", "rel", "", 2, 2, opcode_0xb0()};
-    opcode_info[0xb1] = {"LDA", "(ind),Y", "SZ", 5, 2, opcode_0xb1()};
-    opcode_info[0xb4] = {"LDY", "zpg,X", "SZ", 4, 2, opcode_0xb4()};
-    opcode_info[0xb5] = {"LDA", "zpg,X", "SZ", 4, 2, opcode_0xb5()};
-    opcode_info[0xb6] = {"LDX", "zpg,Y", "SZ", 4, 2, opcode_0xb6()};
-    opcode_info[0xb8] = {"CLV", "", "V", 2, 1, opcode_0xb8()};
-    opcode_info[0xb9] = {"LDA", "abs,Y", "SZ", 4, 3, opcode_0xb9()};
-    opcode_info[0xba] = {"TSX", "", "", 2, 1, opcode_0xba()};
-    opcode_info[0xbc] = {"LDY", "abs,X", "SZ", 4, 3, opcode_0xbc()};
-    opcode_info[0xbd] = {"LDA", "abs,X", "SZ", 4, 3, opcode_0xbd()};
-    opcode_info[0xbe] = {"LDX", "abs,Y", "SZ", 4, 3, opcode_0xbe()};
-    opcode_info[0xc0] = {"CPY", "#", "SZC", 2, 2, opcode_0xc0()};
-    opcode_info[0xc1] = {"CMP", "(ind,X)", "SZC", 6, 2, opcode_0xc1()};
-    opcode_info[0xc4] = {"CPY", "zpg", "SZC", 3, 2, opcode_0xc4()};
-    opcode_info[0xc5] = {"CMP", "zpg", "SZC", 3, 2, opcode_0xc5()};
-    opcode_info[0xc6] = {"DEC", "zpg", "SZ", 5, 2, opcode_0xc6()};
-    opcode_info[0xc8] = {"INY", "", "", 2, 1, opcode_0xc8()};
-    opcode_info[0xc9] = {"CMP", "#", "SZC", 2, 2, opcode_0xc9()};
-    opcode_info[0xca] = {"DEX", "", "SZ", 2, 1, opcode_0xca()};
-    opcode_info[0xcc] = {"CPY", "abs", "SZC", 4, 3, opcode_0xcc()};
-    opcode_info[0xcd] = {"CMP", "abs", "SZC", 4, 3, opcode_0xcd()};
-    opcode_info[0xce] = {"DEC", "abs", "SZ", 6, 3, opcode_0xce()};
-    opcode_info[0xd0] = {"BNE", "rel", "", 2, 2, opcode_0xd0()};
-    opcode_info[0xd1] = {"CMP", "(ind),Y", "SZC", 5, 2, opcode_0xd1()};
-    opcode_info[0xd5] = {"CMP", "zpg,X", "SZC", 4, 2, opcode_0xd5()};
-    opcode_info[0xd6] = {"DEC", "zpg,X", "SZ", 6, 2, opcode_0xd6()};
-    opcode_info[0xd8] = {"CLD", "", "D", 2, 1, opcode_0xd8()};
-    opcode_info[0xd9] = {"CMP", "abs,Y", "SZC", 4, 3, opcode_0xd9()};
-    opcode_info[0xdd] = {"CMP", "abs,X", "SZC", 4, 3, opcode_0xdd()};
-    opcode_info[0xde] = {"DEC", "abs,X", "SZ", 7, 3, opcode_0xde()};
-    opcode_info[0xe0] = {"CPX", "#", "SZC", 2, 2, opcode_0xe0()};
-    opcode_info[0xe1] = {"SBC", "(ind,X)", "SVZC", 6, 2, opcode_0xe1()};
-    opcode_info[0xe4] = {"CPX", "zpg", "SZC", 3, 2, opcode_0xe4()};
-    opcode_info[0xe5] = {"SBC", "zpg", "SVZC", 3, 2, opcode_0xe5()};
-    opcode_info[0xe6] = {"INC", "zpg", "SZ", 5, 2, opcode_0xe6()};
-    opcode_info[0xe8] = {"INX", "", "SZ", 2, 1, opcode_0xe8()};
-    opcode_info[0xe9] = {"SBC", "#", "SVZC", 2, 2, opcode_0xe9()};
-    opcode_info[0xea] = {"NOP", "", "", 2, 1, opcode_0xea()};
-    opcode_info[0xec] = {"CPX", "abs", "SZC", 4, 3, opcode_0xec()};
-    opcode_info[0xed] = {"SBC", "abs", "SVZC", 4, 3, opcode_0xed()};
-    opcode_info[0xee] = {"INC", "abs", "SZ", 6, 3, opcode_0xee()};
-    opcode_info[0xf0] = {"BEQ", "rel", "", 2, 2, opcode_0xf0()};
-    opcode_info[0xf1] = {"SBC", "(ind),Y", "SVZC", 5, 2, opcode_0xf1()};
-    opcode_info[0xf5] = {"SBC", "zpg,X", "SVZC", 4, 2, opcode_0xf5()};
-    opcode_info[0xf6] = {"INC", "zpg,X", "SZ", 6, 2, opcode_0xf6()};
-    opcode_info[0xf8] = {"SED", "", "D", 2, 1, opcode_0xf8()};
-    opcode_info[0xf9] = {"SBC", "abs,Y", "SVZC", 4, 3, opcode_0xf9()};
-    opcode_info[0xfd] = {"SBC", "abs,X", "SVZC", 4, 3, opcode_0xfd()};
-    opcode_info[0xfe] = {"INC", "abs,X", "SZ", 7, 3, opcode_0xfe()};
+    opcode_info[0x00] = {"BRK", "", "B", 7, 1, opcode_0x00};
+    opcode_info[0x01] = {"ORA", "(ind,X)", "SZ", 6, 2, opcode_0x01};
+    opcode_info[0x05] = {"ORA", "zpg", "SZ", 3, 2, opcode_0x05};
+    opcode_info[0x06] = {"ASL", "zpg", "SZC", 5, 2, opcode_0x06};
+    opcode_info[0x08] = {"PHP", "", "", 3, 1, opcode_0x08};
+    opcode_info[0x09] = {"ORA", "#", "SZ", 2, 2, opcode_0x09};
+    opcode_info[0x0a] = {"ASL", "A", "SZC", 2, 1, opcode_0x0A};
+    opcode_info[0x0d] = {"ORA", "abs", "SZ", 4, 3, opcode_0x0D};
+    opcode_info[0x0e] = {"ASL", "abs", "SZC", 6, 3, opcode_0x0E};
+    opcode_info[0x10] = {"BPL", "rel", "", 2, 2, opcode_0x10};
+    opcode_info[0x11] = {"ORA", "(ind),Y", "SZ", 5, 2, opcode_0x11};
+    opcode_info[0x15] = {"ORA", "zpg,X", "SZ", 4, 2, opcode_0x15};
+    opcode_info[0x16] = {"ASL", "zpg,X", "SZC", 6, 2, opcode_0x16};
+    opcode_info[0x18] = {"CLC", "", "C", 2, 1, opcode_0x18};
+    opcode_info[0x19] = {"ORA", "abs,Y", "SZ", 4, 3, opcode_0x19};
+    opcode_info[0x1d] = {"ORA", "abs,X", "SZ", 4, 3, opcode_0x1D};
+    opcode_info[0x1e] = {"ASL", "abs,X", "SZC", 7, 3, opcode_0x1E};
+    opcode_info[0x20] = {"JSR", "abs", "", 6, 3, opcode_0x20};
+    opcode_info[0x21] = {"AND", "(ind,X)", "SZ", 6, 2, opcode_0x21};
+    opcode_info[0x24] = {"BIT", "zpg", "NVZ", 3, 2, opcode_0x24};
+    opcode_info[0x25] = {"AND", "zpg", "SZ", 3, 2, opcode_0x25};
+    opcode_info[0x26] = {"ROL", "zpg", "SZC", 5, 2, opcode_0x26};
+    opcode_info[0x28] = {"PLP", "", "", 4, 1, opcode_0x28};
+    opcode_info[0x29] = {"AND", "#", "SZ", 2, 2, opcode_0x29};
+    opcode_info[0x2a] = {"ROL", "A", "SZC", 2, 1, opcode_0x2A};
+    opcode_info[0x2c] = {"BIT", "abs", "NVZ", 4, 3, opcode_0x2C};
+    opcode_info[0x2d] = {"AND", "abs", "SZ", 4, 3, opcode_0x2D};
+    opcode_info[0x2e] = {"ROL", "abs", "SZC", 6, 3, opcode_0x2E};
+    opcode_info[0x30] = {"BMI", "rel", "", 2, 2, opcode_0x30};
+    opcode_info[0x31] = {"AND", "(ind),Y", "SZ", 5, 2, opcode_0x31};
+    opcode_info[0x35] = {"AND", "zpg,X", "SZ", 4, 2, opcode_0x35};
+    opcode_info[0x36] = {"ROL", "zpg,X", "SZC", 6, 2, opcode_0x36};
+    opcode_info[0x38] = {"SEC", "", "C", 2, 1, opcode_0x38};
+    opcode_info[0x39] = {"AND", "abs,Y", "SZ", 4, 3, opcode_0x39};
+    opcode_info[0x3d] = {"AND", "abs,X", "SZ", 4, 3, opcode_0x3D};
+    opcode_info[0x3e] = {"ROL", "abs,X", "SZC", 7, 3, opcode_0x3E};
+    opcode_info[0x40] = {"RTI", "", "SZCDVIB", 6, 1, opcode_0x40};
+    opcode_info[0x41] = {"EOR", "(ind,X)", "SZ", 6, 2, opcode_0x41};
+    opcode_info[0x45] = {"EOR", "zpg", "SZ", 3, 2, opcode_0x45};
+    opcode_info[0x46] = {"LSR", "zpg", "SZC", 5, 2, opcode_0x46};
+    opcode_info[0x48] = {"PHA", "", "", 3, 1, opcode_0x48};
+    opcode_info[0x49] = {"EOR", "#", "SZ", 2, 2, opcode_0x49};
+    opcode_info[0x4a] = {"LSR", "A", "SZC", 2, 1, opcode_0x4A};
+    opcode_info[0x4c] = {"JMP", "abs", "", 3, 3, opcode_0x4C};
+    opcode_info[0x4d] = {"EOR", "abs", "SZ", 4, 3, opcode_0x4D};
+    opcode_info[0x4e] = {"LSR", "abs", "SZC", 6, 3, opcode_0x4E};
+    opcode_info[0x50] = {"BVC", "rel", "", 2, 2, opcode_0x50};
+    opcode_info[0x51] = {"EOR", "(ind),Y", "SZ", 5, 2, opcode_0x51};
+    opcode_info[0x55] = {"EOR", "zpg,X", "SZ", 4, 2, opcode_0x55};
+    opcode_info[0x56] = {"LSR", "zpg,X", "SZC", 6, 2, opcode_0x56};
+    opcode_info[0x58] = {"CLI", "", "I", 2, 1, opcode_0x58};
+    opcode_info[0x59] = {"EOR", "abs,Y", "SZ", 4, 3, opcode_0x59};
+    opcode_info[0x5d] = {"EOR", "abs,X", "SZ", 4, 3, opcode_0x5D};
+    opcode_info[0x5e] = {"LSR", "abs,X", "SZC", 7, 3, opcode_0x5E};
+    opcode_info[0x60] = {"RTS", "", "", 6, 1, opcode_0x60};
+    opcode_info[0x61] = {"ADC", "(ind,X)", "SVZC", 6, 2, opcode_0x61};
+    opcode_info[0x65] = {"ADC", "zpg", "SVZC", 3, 2, opcode_0x65};
+    opcode_info[0x66] = {"ROR", "zpg", "SZC", 5, 2, opcode_0x66};
+    opcode_info[0x68] = {"PLA", "", "", 4, 1, opcode_0x68};
+    opcode_info[0x69] = {"ADC", "#", "SVZC", 2, 2, opcode_0x69};
+    opcode_info[0x6a] = {"ROR", "A", "SZC", 2, 1, opcode_0x6A};
+    opcode_info[0x6c] = {"JMP", "(ind)", "", 5, 3, opcode_0x6C};
+    opcode_info[0x6d] = {"ADC", "abs", "SVZC", 4, 3, opcode_0x6D};
+    opcode_info[0x6e] = {"ROR", "abs", "SZC", 6, 3, opcode_0x6E};
+    opcode_info[0x70] = {"BVS", "rel", "", 4, 2, opcode_0x70};
+    opcode_info[0x71] = {"ADC", "(ind),Y", "SVZC", 4, 2, opcode_0x71};
+    opcode_info[0x75] = {"ADC", "zpg,X", "SVZC", 4, 2, opcode_0x75};
+    opcode_info[0x76] = {"ROR", "zpg,X", "SZC", 6, 2, opcode_0x76};
+    opcode_info[0x78] = {"SEI", "", "I", 2, 1, opcode_0x78};
+    opcode_info[0x79] = {"ADC", "abs,Y", "SVZC", 4, 3, opcode_0x79};
+    opcode_info[0x7d] = {"ADC", "abs,X", "SVZC", 4, 3, opcode_0x7D};
+    opcode_info[0x7e] = {"ROR", "abs,X", "SZC", 7, 3, opcode_0x7E};
+    opcode_info[0x81] = {"STA", "(ind,X)", "", 6, 2, opcode_0x81};
+    opcode_info[0x84] = {"STY", "zpg", "", 3, 2, opcode_0x84};
+    opcode_info[0x85] = {"STA", "zpg", "", 3, 2, opcode_0x85};
+    opcode_info[0x86] = {"STX", "zpg", "", 3, 2, opcode_0x86};
+    opcode_info[0x88] = {"DEY", "", "SZ", 2, 1, opcode_0x88};
+    opcode_info[0x8a] = {"TXA", "", "SZ", 2, 1, opcode_0x8A};
+    opcode_info[0x8c] = {"STY", "abs", "", 4, 3, opcode_0x8C};
+    opcode_info[0x8d] = {"STA", "abs", "", 4, 3, opcode_0x8D};
+    opcode_info[0x8e] = {"STX", "abs", "", 4, 3, opcode_0x8E};
+    opcode_info[0x90] = {"BCC", "rel", "", 2, 2, opcode_0x90};
+    opcode_info[0x91] = {"STA", "(ind),Y", "", 6, 2, opcode_0x91};
+    opcode_info[0x94] = {"STY", "zpg,X", "", 4, 2, opcode_0x94};
+    opcode_info[0x95] = {"STA", "zpg,X", "", 4, 2, opcode_0x95};
+    opcode_info[0x96] = {"STX", "zpg,Y", "", 4, 2, opcode_0x96};
+    opcode_info[0x98] = {"TYA", "", "SZ", 2, 1, opcode_0x98};
+    opcode_info[0x99] = {"STA", "abs,Y", "", 5, 3, opcode_0x99};
+    opcode_info[0x9a] = {"TXS", "", "", 2, 1, opcode_0x9A};
+    opcode_info[0x9d] = {"STA", "abs,X", "", 5, 3, opcode_0x9D};
+    opcode_info[0xa0] = {"LDY", "#", "SZ", 2, 2, opcode_0xA0};
+    opcode_info[0xa1] = {"LDA", "(ind,X)", "SZ", 6, 2, opcode_0xA1};
+    opcode_info[0xa2] = {"LDX", "#", "SZ", 2, 2, opcode_0xA2};
+    opcode_info[0xa4] = {"LDY", "zpg", "SZ", 3, 2, opcode_0xA4};
+    opcode_info[0xa5] = {"LDA", "zpg", "SZ", 3, 2, opcode_0xA5};
+    opcode_info[0xa6] = {"LDX", "zpg", "SZ", 3, 2, opcode_0xA6};
+    opcode_info[0xa8] = {"TAY", "", "SZ", 2, 1, opcode_0xA8};
+    opcode_info[0xa9] = {"LDA", "#", "SZ", 2, 2, opcode_0xA9};
+    opcode_info[0xaa] = {"TAX", "", "SZ", 2, 1, opcode_0xAA};
+    opcode_info[0xac] = {"LDY", "abs", "SZ", 4, 3, opcode_0xAC};
+    opcode_info[0xad] = {"LDA", "abs", "SZ", 4, 3, opcode_0xAD};
+    opcode_info[0xae] = {"LDX", "abs", "SZ", 4, 3, opcode_0xAE};
+    opcode_info[0xb0] = {"BCS", "rel", "", 2, 2, opcode_0xB0};
+    opcode_info[0xb1] = {"LDA", "(ind),Y", "SZ", 5, 2, opcode_0xB1};
+    opcode_info[0xb4] = {"LDY", "zpg,X", "SZ", 4, 2, opcode_0xB4};
+    opcode_info[0xb5] = {"LDA", "zpg,X", "SZ", 4, 2, opcode_0xB5};
+    opcode_info[0xb6] = {"LDX", "zpg,Y", "SZ", 4, 2, opcode_0xB6};
+    opcode_info[0xb8] = {"CLV", "", "V", 2, 1, opcode_0xB8};
+    opcode_info[0xb9] = {"LDA", "abs,Y", "SZ", 4, 3, opcode_0xB9};
+    opcode_info[0xba] = {"TSX", "", "", 2, 1, opcode_0xBA};
+    opcode_info[0xbc] = {"LDY", "abs,X", "SZ", 4, 3, opcode_0xBC};
+    opcode_info[0xbd] = {"LDA", "abs,X", "SZ", 4, 3, opcode_0xBD};
+    opcode_info[0xbe] = {"LDX", "abs,Y", "SZ", 4, 3, opcode_0xBE};
+    opcode_info[0xc0] = {"CPY", "#", "SZC", 2, 2, opcode_0xC0};
+    opcode_info[0xc1] = {"CMP", "(ind,X)", "SZC", 6, 2, opcode_0xC1};
+    opcode_info[0xc4] = {"CPY", "zpg", "SZC", 3, 2, opcode_0xC4};
+    opcode_info[0xc5] = {"CMP", "zpg", "SZC", 3, 2, opcode_0xC5};
+    opcode_info[0xc6] = {"DEC", "zpg", "SZ", 5, 2, opcode_0xC6};
+    opcode_info[0xc8] = {"INY", "", "", 2, 1, opcode_0xC8};
+    opcode_info[0xc9] = {"CMP", "#", "SZC", 2, 2, opcode_0xC9};
+    opcode_info[0xca] = {"DEX", "", "SZ", 2, 1, opcode_0xCA};
+    opcode_info[0xcc] = {"CPY", "abs", "SZC", 4, 3, opcode_0xCC};
+    opcode_info[0xcd] = {"CMP", "abs", "SZC", 4, 3, opcode_0xCD};
+    opcode_info[0xce] = {"DEC", "abs", "SZ", 6, 3, opcode_0xCE};
+    opcode_info[0xd0] = {"BNE", "rel", "", 2, 2, opcode_0xD0};
+    opcode_info[0xd1] = {"CMP", "(ind),Y", "SZC", 5, 2, opcode_0xD1};
+    opcode_info[0xd5] = {"CMP", "zpg,X", "SZC", 4, 2, opcode_0xD5};
+    opcode_info[0xd6] = {"DEC", "zpg,X", "SZ", 6, 2, opcode_0xD6};
+    opcode_info[0xd8] = {"CLD", "", "D", 2, 1, opcode_0xD8};
+    opcode_info[0xd9] = {"CMP", "abs,Y", "SZC", 4, 3, opcode_0xD9};
+    opcode_info[0xdd] = {"CMP", "abs,X", "SZC", 4, 3, opcode_0xDD};
+    opcode_info[0xde] = {"DEC", "abs,X", "SZ", 7, 3, opcode_0xDE};
+    opcode_info[0xe0] = {"CPX", "#", "SZC", 2, 2, opcode_0xE0};
+    opcode_info[0xe1] = {"SBC", "(ind,X)", "SVZC", 6, 2, opcode_0xE1};
+    opcode_info[0xe4] = {"CPX", "zpg", "SZC", 3, 2, opcode_0xE4};
+    opcode_info[0xe5] = {"SBC", "zpg", "SVZC", 3, 2, opcode_0xE5};
+    opcode_info[0xe6] = {"INC", "zpg", "SZ", 5, 2, opcode_0xE6};
+    opcode_info[0xe8] = {"INX", "", "SZ", 2, 1, opcode_0xE8};
+    opcode_info[0xe9] = {"SBC", "#", "SVZC", 2, 2, opcode_0xE9};
+    opcode_info[0xea] = {"NOP", "", "", 2, 1, opcode_0xEA};
+    opcode_info[0xec] = {"CPX", "abs", "SZC", 4, 3, opcode_0xEC};
+    opcode_info[0xed] = {"SBC", "abs", "SVZC", 4, 3, opcode_0xED};
+    opcode_info[0xee] = {"INC", "abs", "SZ", 6, 3, opcode_0xEE};
+    opcode_info[0xf0] = {"BEQ", "rel", "", 2, 2, opcode_0xF0};
+    opcode_info[0xf1] = {"SBC", "(ind),Y", "SVZC", 5, 2, opcode_0xF1};
+    opcode_info[0xf5] = {"SBC", "zpg,X", "SVZC", 4, 2, opcode_0xF5};
+    opcode_info[0xf6] = {"INC", "zpg,X", "SZ", 6, 2, opcode_0xF6};
+    opcode_info[0xf8] = {"SED", "", "D", 2, 1, opcode_0xF8};
+    opcode_info[0xf9] = {"SBC", "abs,Y", "SVZC", 4, 3, opcode_0xF9};
+    opcode_info[0xfd] = {"SBC", "abs,X", "SVZC", 4, 3, opcode_0xFD};
+    opcode_info[0xfe] = {"INC", "abs,X", "SZ", 7, 3, opcode_0xFE};
 }

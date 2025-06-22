@@ -30,75 +30,86 @@ inline uint8_t internal_address_check(int32_t local_address)
 {
 
     if ((local_address >= 0x0000) && (local_address < 0x0400))
-        return mode; //  6502 ZeroPage and Stack
+        return addr_mode; //  6502 ZeroPage and Stack
     if ((local_address >= 0x0400) && (local_address < 0x0C00))
-        return 0x1; //  Apple II Plus Text Page 1 and 2
+        return Read_Internal_Write_External; //  Apple II Plus Text Page 1 and 2
     if ((local_address >= 0x0C00) && (local_address < 0x2000))
-        return mode; //  Apple II Plus RAM
+        return addr_mode; //  Apple II Plus RAM
     if ((local_address >= 0x2000) && (local_address < 0x6000))
-        return mode; //  Apple IIPlus  HIRES Page 1 and 2
+        return addr_mode; //  Apple IIPlus  HIRES Page 1 and 2
     if ((local_address >= 0x6000) && (local_address < 0xC000))
-        return mode; //  Apple II Plus RAM
+        return addr_mode; //  Apple II Plus RAM
     if ((local_address >= 0xD000) && (local_address <= 0xFFFF))
-        return 0x0; //  Apple II Plus ROMs
+        return All_External; //  Apple II Plus ROMs
     //    Bank switching does not currently work, so set to 0x0 to use the Language card and have 64KB total memory
     //    and to accelerate ROM but run with only 48KB of memory, set to 'mode'
 
     return 0x0;
 }
 
-// -------------------------------------------------------------
-// Wait for the CLK1 rising edge and sample signals and data bus
-// -------------------------------------------------------------
-inline void wait_for_CLK_rising_edge()
-{
+//====================================================================================================
+// Clock edge detection.
+//      REMEMBER: the CLK0 macro gives the value of the Phase-0 pin on the 6502 socket
+//      Note: CLK1 is the inverted value of CLK0 (and is an output from the 6502)
+//            CLK2 is the same as CLK0 (and is an output from the 6502)
+inline void wait_for_CLK0_falling_edge() {
+    if (debug_mode) return;
+
+    while (! CLK0) {}    // Wait here until CLK0 is high
+    while (CLK0) {}      // Wait here until CLK0 goes low
+}
+
+inline void wait_for_CLK0_rising_edge() {
+    if (debug_mode) return;
+
+    while (CLK0) {}         // Wait here until CLK0 is low
+    while (! CLK0) {}       // Wait here until CLK0 goes high
+}
+
+
+// -------------------------------------------------
+// Wait for the CLK1 rising edge and sample signals
+// -------------------------------------------------
+inline void sample_at_CLK0_falling_edge() {
     uint32_t GPIO6_data = 0;
-    uint32_t GPIO6_data_d1 = 0;
-    uint32_t d10, d2, d3, d4, d5, d76;
+    // uint32_t GPIO6_data_d1 = 0;
+    // uint32_t d10, d2, d3, d4, d5, d76;
 
-    while (((GPIO6_DR >> 12) & 0x1) != 0)
-    {
-    }
+    if (debug_mode)
+        return;
 
-    do
-    {
-        GPIO6_data_d1 = GPIO6_DR;
-    } while (((GPIO6_data_d1 >> 12) & 0x1) == 0); // This method needed to support Apple-II+ DRAM read data setup time
+    //===============================================================================
+	//   Wait for the end of the MPU-access period (indicated by falling CLK0 edge),
+	//   then grab the data and control bits
+	//
+	//   Refer to the comments above ("Clock edge detection") for details
+	//
+    wait_for_CLK0_falling_edge();
+	GPIO6_data = GPIO6_DR;
 
-    //  Read the signals and data bus
-    GPIO6_data = GPIO6_data_d1;
+    // do {
+        // GPIO6_data_d1 = GPIO6_DR;
+    // } while (((GPIO6_data_d1 >> 12) & 0x1) == 0); // This method needed to support Apple-II+ DRAM read data setup time
+    // GPIO6_data = GPIO6_data_d1;
 
-    d10 = (GPIO6_data & 0x000C0000) >> 18; // Teensy 4.1 Pin-14  GPIO6_DR[19:18]  D1:D0
-    d2 = (GPIO6_data & 0x00800000) >> 21;  // Teensy 4.1 Pin-16  GPIO6_DR[23]     D2
-    d3 = (GPIO6_data & 0x00400000) >> 19;  // Teensy 4.1 Pin-17  GPIO6_DR[22]     D3
-    d4 = (GPIO6_data & 0x00020000) >> 13;  // Teensy 4.1 Pin-18  GPIO6_DR[17]     D4
-    d5 = (GPIO6_data & 0x00010000) >> 11;  // Teensy 4.1 Pin-19  GPIO6_DR[16]     D5
-    d76 = (GPIO6_data & 0x0C000000) >> 20; // Teensy 4.1 Pin-20  GPIO6_DR[27:26]  D7:D6
+	// This ugliness can be removed by doing a smarter job of routing data bits to the Teensy
+#define bits_d10 ((GPIO6_data & 0x000C0000) >> 18)  // Teensy 4.1 Pin-14  GPIO6_DR[19:18]  D1:D0
+#define bits_d2  ((GPIO6_data & 0x00800000) >> 21)  // Teensy 4.1 Pin-16  GPIO6_DR[23]     D2
+#define bits_d3  ((GPIO6_data & 0x00400000) >> 19)  // Teensy 4.1 Pin-17  GPIO6_DR[22]     D3
+#define bits_d4  ((GPIO6_data & 0x00020000) >> 13)  // Teensy 4.1 Pin-18  GPIO6_DR[17]     D4
+#define bits_d5  ((GPIO6_data & 0x00010000) >> 11)  // Teensy 4.1 Pin-19  GPIO6_DR[16]     D5
+#define bits_d76 ((GPIO6_data & 0x0C000000) >> 20)  // Teensy 4.1 Pin-20  GPIO6_DR[27:26]  D7:D6
+    direct_datain = bits_d76 | bits_d5 | bits_d4 | bits_d3 | bits_d2 | bits_d10;
 
-    direct_irq = (GPIO6_data & 0x00002000) >> 13;     // Teensy 4.1 Pin-25  GPIO6_DR[13]     IRQ
+    // why are these synchronous?
+    direct_irq     = (GPIO6_data & 0x00002000) >> 13; // Teensy 4.1 Pin-25  GPIO6_DR[13]     IRQ
     direct_ready_n = (GPIO6_data & 0x40000000) >> 30; // Teensy 4.1 Pin-26  GPIO6_DR[30]     READY
-    direct_reset = (GPIO6_data & 0x00100000) >> 20;   // Teensy 4.1 Pin-40  GPIO6_DR[20]     RESET
-    direct_nmi = (GPIO6_data & 0x00200000) >> 21;     // Teensy 4.1 Pin-41  GPIO6_DR[21]     NMI
-
-    direct_datain = d76 | d5 | d4 | d3 | d2 | d10;
+    direct_reset   = (GPIO6_data & 0x00100000) >> 20; // Teensy 4.1 Pin-40  GPIO6_DR[20]     RESET
+    direct_nmi     = (GPIO6_data & 0x00200000) >> 21; // Teensy 4.1 Pin-41  GPIO6_DR[21]     NMI
 
     return;
 }
 
-// -------------------------------------------------
-// Wait for the CLK1 falling edge
-// -------------------------------------------------
-inline void wait_for_CLK_falling_edge()
-{
-
-    while (((GPIO6_DR >> 12) & 0x1) == 0)
-    {
-    }
-    while (((GPIO6_DR >> 12) & 0x1) != 0)
-    {
-    }
-    return;
-}
 
 // -------------------------------------------------
 // Drive the 6502 Address pins
@@ -149,11 +160,11 @@ inline void start_read(uint32_t local_address)
     else
     {
         if (last_access_internal_RAM == 1)
-            wait_for_CLK_rising_edge();
+            wait_for_CLK0_rising_edge();
         last_access_internal_RAM = 0;
 
         digitalWriteFast(PIN_RDWR_n, 0x1);
-        digitalWriteFast(PIN_SYNC, assert_sync);
+        // digitalWriteFast(PIN_SYNC, 0);
         send_address(local_address);
     }
     return;
@@ -173,13 +184,13 @@ inline uint8_t finish_read_byte()
     else
     {
         if (last_access_internal_RAM == 1)
-            wait_for_CLK_rising_edge();
+            wait_for_CLK0_rising_edge();
         last_access_internal_RAM = 0;
         digitalWriteFast(PIN_SYNC, 0x0);
 
         do
         {
-            wait_for_CLK_rising_edge();
+            wait_for_CLK0_rising_edge();
         } while (direct_ready_n == 0x1); // Delay a clock cycle until ready is active
 
         if (internal_address_check(current_address) > 0x0)
@@ -207,13 +218,13 @@ inline uint8_t read_byte(uint16_t local_address)
     else
     {
         if (last_access_internal_RAM == 1)
-            wait_for_CLK_rising_edge();
+            wait_for_CLK0_rising_edge();
         last_access_internal_RAM = 0;
 
         start_read(local_address);
         do
         {
-            wait_for_CLK_rising_edge();
+            wait_for_CLK0_rising_edge();
         } while (direct_ready_n == 0x1); // Delay a clock cycle until ready is active
 
         // Set Acceleration using Apple II keystrokes
@@ -237,22 +248,22 @@ inline uint8_t read_byte(uint16_t local_address)
             {
                 if (direct_datain == 0xB0)
                 {
-                    mode = 0;
+                    addr_mode = All_External;
                     rx_byte_state = 0;
                 }
                 if (direct_datain == 0xB1)
                 {
-                    mode = 1;
+                    addr_mode = Read_Internal_Write_External;
                     rx_byte_state = 0;
                 }
                 if (direct_datain == 0xB2)
                 {
-                    mode = 2;
+                    addr_mode = Read_Fast_Internal_Write_External;
                     rx_byte_state = 0;
                 }
                 if (direct_datain == 0xB3)
                 {
-                    mode = 3;
+                    addr_mode = All_Fast_Internal;
                     rx_byte_state = 0;
                 }
             }
@@ -289,7 +300,7 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data)
     else
     {
         if (last_access_internal_RAM == 1)
-            wait_for_CLK_rising_edge();
+            wait_for_CLK0_rising_edge();
         last_access_internal_RAM = 0;
 
         digitalWriteFast(PIN_RDWR_n, 0x0);
@@ -309,10 +320,10 @@ inline void write_byte(uint16_t local_address, uint8_t local_write_data)
 
         // During the second CLK phase, enable the data bus output drivers
         //
-        wait_for_CLK_falling_edge();
+        wait_for_CLK0_falling_edge();
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x0);
 
-        wait_for_CLK_rising_edge();
+        wait_for_CLK0_rising_edge();
         digitalWriteFast(PIN_DATAOUT_OE_n, 0x1);
     }
     return;

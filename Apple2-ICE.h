@@ -10,10 +10,14 @@
 #define PIN_RDWR_n 12
 #define PIN_SYNC 39
 
-//  Return the ACTAUL state of the CLK0 pin
-// Complexity vs Speed... hmmm...
+//  Return the ACTAUL state of the CLK0 pin at the 6502 socket
+//    (the Teensy input is driven by an inverter on the ICE board)
 #define CLK0 (((GPIO6_DR >> 12) & 0x1) == 0)
+// Complexity vs Speed... hmmm...
 //  #define CLK0 (digitalReadFast(PIN_CLK0_INV) == LOW)
+
+#define CLK1 (CLK0 == false)
+#define CLK2 (CLK0 == true)
 
 #define PIN_ADDR0 27
 #define PIN_ADDR1 38
@@ -51,22 +55,3 @@
 #define PIN_DATAOUT7 4
 #define PIN_DATAOUT_OE_n 3
 
-struct OpDecoder
-{
-    String opcode;
-    String operands;
-    String flags;
-    uint8_t max_cycles;
-    uint8_t length;
-    uint16_t (*operation)(void);
-};
-
-extern opcode_info[];
-
-enum ENUM_RUN_MODE
-{
-    WAITING = 0,
-    SINGLE_STEP,
-    RUNNING,
-    RESETTING
-};

@@ -76,7 +76,17 @@
 #include <stdint.h>
 
 #include "Apple2-ICE.h"
-#include "BIU.h"
+
+
+
+
+enum ENUM_RUN_MODE
+{
+    WAITING = 0,
+    SINGLE_STEP,
+    RUNNING,
+    RESETTING
+};
 
 //-------------------------------------------------------------------------
 //  Interface to the Bus Interface Unit
@@ -89,10 +99,21 @@ void initialize_roms();
 //-------------------------------------------------------------------------
 //   Interface to the opcode_decoder.ino
 //-------------------------------------------------------------------------
+struct OpDecoder
+{
+    String opcode;
+    String operands;
+    String flags;
+    uint8_t max_cycles;
+    uint8_t length;
+    uint16_t (*operation)(void);
+} opcode_info[256];
+
 String decode_instruction(uint8_t op, uint8_t op1, uint8_t op2);
 void initialize_opcode_info();
-extern OpDecoder opcode_info[256];
 
+//-------------------------------------------------
+//
 // 6502 Flags
 //
 #define flag_n (register_flags & 0x80) >> 7 // register_flags[7]
@@ -103,6 +124,9 @@ extern OpDecoder opcode_info[256];
 #define flag_z (register_flags & 0x02) >> 1 // register_flags[1]
 #define flag_c (register_flags & 0x01) >> 0 // register_flags[0]
 
+
+//-------------------------------------------------
+//
 // 6502 stack always in Page 1
 //
 #define register_sp_fixed (0x0100 | register_sp)
@@ -136,6 +160,20 @@ ADDR_MODE addr_mode = All_External;
 
 uint16_t register_pc = 0;
 uint16_t effective_address = 0;
+
+String flag_status(void) {
+    String s;
+
+    s = s + (flag_c ? "C" : "-");
+    s = s + (flag_z ? "Z" : "-");
+    s = s + (flag_i ? "I" : "-");
+    s = s + (flag_d ? "D" : "-");
+    s = s + (flag_b ? "B" : "-");
+    s = s + (flag_v ? "V" : "-");
+    s = s + (flag_n ? "N" : "-");
+
+    return(s);
+}
 
 // ------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------
@@ -218,7 +256,7 @@ void setup()
     pinMode(PIN_IRQ, INPUT);
     pinMode(PIN_NMI, INPUT);
     pinMode(PIN_RDWR_n, OUTPUT);
-    pinMode(PIN_SYNC, OUTPUT);
+    pinMode(PIN_SYNC, OUTPUT);    // We don't assert this signal ATM
 
     pinMode(PIN_ADDR0, OUTPUT);
     pinMode(PIN_ADDR1, OUTPUT);
@@ -282,7 +320,7 @@ void setup()
 
 void push(uint8_t push_data)
 {
-    write_byte(register_sp_fixed, push_data, false);
+    write_byte(register_sp_fixed, push_data);
     register_sp = register_sp - 1;
     return;
 }
@@ -291,7 +329,7 @@ uint8_t pop()
 {
     uint8_t temp = 0;
     register_sp = register_sp + 1;
-    temp = read_byte(register_sp_fixed, false);
+    temp = read_byte(register_sp_fixed);
     return temp;
 }
 
@@ -335,32 +373,31 @@ void Begin_Fetch_Next_Opcode()
 // -------------------------------------------------
 uint8_t Fetch_Immediate(uint8_t offset)
 {
-    //    register_pc++;
-    return read_byte(register_pc + offset, false);
+    return read_byte(register_pc + offset);
 }
 
 uint8_t Fetch_ZeroPage()
 {
     effective_address = Fetch_Immediate(1);
-    return read_byte(effective_address, false);
+    return read_byte(effective_address);
 }
 
 uint8_t Fetch_ZeroPage_X()
 {
     uint16_t bal;
     bal = Fetch_Immediate(1);
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     effective_address = (0x00FF & (bal + register_x));
-    return read_byte(effective_address, false);
+    return read_byte(effective_address);
 }
 
 uint8_t Fetch_ZeroPage_Y()
 {
     uint16_t bal;
     bal = Fetch_Immediate(1);
-    read_byte(register_pc + 1, false);
+    read_byte(register_pc + 1);
     effective_address = (0x00FF & (bal + register_y));
-    return read_byte(effective_address, false);
+    return read_byte(effective_address);
 }
 
 uint16_t Calculate_Absolute()
@@ -380,7 +417,7 @@ uint8_t Fetch_Absolute()
     adl = Fetch_Immediate(1);
     adh = Fetch_Immediate(2) << 8;
     effective_address = adl + adh;
-    return read_byte(effective_address, false);
+    return read_byte(effective_address);
 }
 
 uint8_t Fetch_Absolute_X(uint8_t page_cross_check)
@@ -391,11 +428,11 @@ uint8_t Fetch_Absolute_X(uint8_t page_cross_check)
     bal = Fetch_Immediate(1);
     bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_x;
-    local_data = read_byte(effective_address, false);
+    local_data = read_byte(effective_address);
 
     if (page_cross_check == 1 && ((0xFF00 & effective_address) != (0xFF00 & bah)))
     {
-        local_data = read_byte(effective_address, false);
+        local_data = read_byte(effective_address);
     }
     return local_data;
 }
@@ -408,11 +445,11 @@ uint8_t Fetch_Absolute_Y(uint8_t page_cross_check)
     bal = Fetch_Immediate(1);
     bah = Fetch_Immediate(2) << 8;
     effective_address = bah + bal + register_y;
-    local_data = read_byte(effective_address, false);
+    local_data = read_byte(effective_address);
 
     if (page_cross_check == 1 && ((0xFF00 & effective_address) != (0xFF00 & bah)))
     {
-        local_data = read_byte(effective_address, false);
+        local_data = read_byte(effective_address);
     }
     return local_data;
 }
@@ -424,11 +461,11 @@ uint8_t Fetch_Indexed_Indirect_X()
     uint8_t local_data;
 
     bal = Fetch_Immediate(1) + register_x;
-    read_byte(bal, false);
-    adl = read_byte(0xFF & bal, false);
-    adh = read_byte(0xFF & (bal + 1), false) << 8;
+    read_byte(bal);
+    adl = read_byte(0xFF & bal);
+    adh = read_byte(0xFF & (bal + 1)) << 8;
     effective_address = adh + adl;
-    local_data = read_byte(effective_address, false);
+    local_data = read_byte(effective_address);
     return local_data;
 }
 
@@ -438,15 +475,15 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check)
     uint8_t local_data;
 
     ial = Fetch_Immediate(1);
-    bal = read_byte(0xFF & ial, false);
-    bah = read_byte(0xFF & (ial + 1), false) << 8;
+    bal = read_byte(0xFF & ial);
+    bah = read_byte(0xFF & (ial + 1)) << 8;
 
     effective_address = bah + bal + register_y;
-    local_data = read_byte(effective_address, false);
+    local_data = read_byte(effective_address);
 
     if (page_cross_check == 1 && ((0xFF00 & effective_address) != (0xFF00 & bah)))
     {
-        local_data = read_byte(effective_address, false);
+        local_data = read_byte(effective_address);
     }
     return local_data;
 }
@@ -454,7 +491,7 @@ uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check)
 void Write_ZeroPage(uint8_t local_data)
 {
     effective_address = Fetch_Immediate(1);
-    write_byte(effective_address, local_data, false);
+    write_byte(effective_address, local_data);
     return;
 }
 
@@ -462,23 +499,23 @@ void Write_Absolute(uint8_t local_data)
 {
     effective_address = Fetch_Immediate(1);
     effective_address = (Fetch_Immediate(2) << 8) + effective_address;
-    write_byte(effective_address, local_data, false);
+    write_byte(effective_address, local_data);
     return;
 }
 
 void Write_ZeroPage_X(uint8_t local_data)
 {
     effective_address = Fetch_Immediate(1);
-    read_byte(effective_address, false);
-    write_byte((0x00FF & (effective_address + register_x)), local_data, false);
+    read_byte(effective_address);
+    write_byte((0x00FF & (effective_address + register_x)), local_data);
     return;
 }
 
 void Write_ZeroPage_Y(uint8_t local_data)
 {
     effective_address = Fetch_Immediate(1);
-    read_byte(effective_address, false);
-    write_byte((0x00FF & (effective_address + register_y)), local_data, false);
+    read_byte(effective_address);
+    write_byte((0x00FF & (effective_address + register_y)), local_data);
     return;
 }
 
@@ -489,8 +526,8 @@ void Write_Absolute_X(uint8_t local_data)
     bal = Fetch_Immediate(1);
     bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_x;
-    read_byte(effective_address, false);
-    write_byte(effective_address, local_data, false);
+    read_byte(effective_address);
+    write_byte(effective_address, local_data);
     return;
 }
 
@@ -501,13 +538,13 @@ void Write_Absolute_Y(uint8_t local_data)
     bal = Fetch_Immediate(1);
     bah = Fetch_Immediate(2) << 8;
     effective_address = bal + bah + register_y;
-    read_byte(effective_address, false);
+    read_byte(effective_address);
 
     if ((0xFF00 & effective_address) != (0xFF00 & bah))
     {
-        read_byte(effective_address, false);
+        read_byte(effective_address);
     }
-    write_byte(effective_address, local_data, false);
+    write_byte(effective_address, local_data);
     return;
 }
 
@@ -517,11 +554,11 @@ void Write_Indexed_Indirect_X(uint8_t local_data)
     uint16_t adl, adh;
 
     bal = Fetch_Immediate(1);
-    read_byte(bal, false);
-    adl = read_byte(0xFF & (bal + register_x), false);
-    adh = read_byte(0xFF & (bal + register_x + 1), false) << 8;
+    read_byte(bal);
+    adl = read_byte(0xFF & (bal + register_x));
+    adh = read_byte(0xFF & (bal + register_x + 1)) << 8;
     effective_address = adh + adl;
-    write_byte(effective_address, local_data, false);
+    write_byte(effective_address, local_data);
     return;
 }
 
@@ -531,18 +568,18 @@ void Write_Indexed_Indirect_Y(uint8_t local_data)
     uint16_t bal, bah;
 
     ial = Fetch_Immediate(1);
-    bal = read_byte(ial, false);
-    bah = read_byte(ial + 1, false) << 8;
+    bal = read_byte(ial);
+    bah = read_byte(ial + 1) << 8;
     effective_address = bah + bal + register_y;
-    read_byte(effective_address, false);
-    write_byte(effective_address, local_data, false);
+    read_byte(effective_address);
+    write_byte(effective_address, local_data);
     return;
 }
 
 void Double_WriteBack(uint8_t local_data)
 {
-    write_byte(effective_address, local_data, false);
-    write_byte(effective_address, local_data, false);
+    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data);
     return;
 }
 
@@ -562,19 +599,19 @@ void reset_sequence()
     digitalWriteFast(PIN_RDWR_n, 0x1);
     digitalWriteFast(PIN_DATAOUT_OE_n, 0x1);
 
-    temp1 = read_byte(register_pc, false);           // Address ??
-    temp1 = read_byte(register_pc + 1, false);       // Address ?? + 1
-    temp1 = read_byte(register_sp_fixed, false);     // Address SP
-    temp1 = read_byte(register_sp_fixed - 1, false); // Address SP - 1
-    temp1 = read_byte(register_sp_fixed - 2, false); // Address SP - 2
+    temp1 = read_byte(register_pc);           // Address ??
+    temp1 = read_byte(register_pc + 1);       // Address ?? + 1
+    temp1 = read_byte(register_sp_fixed);     // Address SP
+    temp1 = read_byte(register_sp_fixed - 1); // Address SP - 1
+    temp1 = read_byte(register_sp_fixed - 2); // Address SP - 2
 
-    temp1 = read_byte(0xFFFC, false); // Fetch Vector PCL
-    temp2 = read_byte(0xFFFD, false); // Fetch Vector PCH
+    temp1 = read_byte(0xFFFC); // Fetch Vector PCL
+    temp2 = read_byte(0xFFFD); // Fetch Vector PCH
 
     register_flags = 0x34; // Set the I and B flags
 
     register_pc = (temp2 << 8) | temp1;
-    start_read(register_pc, true); // Fetch first opcode at vector PCH,PCL
+    start_read(register_pc); // Fetch first opcode at vector PCH,PCL
 
     Serial.println("[RESET Complete]");
 
@@ -588,22 +625,22 @@ void nmi_handler()
 {
     uint16_t temp1, temp2;
 
-    sample_at_CLK_falling_edge(); // Begin processing on next CLK edge
+    sample_at_CLK0_falling_edge(); // Begin processing on next CLK edge
 
     register_flags = register_flags | 0x20; // Set the flag[5]
     register_flags = register_flags & 0xEF; // Clear the B flag
 
-    read_byte(register_pc + 1, false); // Fetch PC+1 (Discard)
+    read_byte(register_pc + 1); // Fetch PC+1 (Discard)
     push(register_pc >> 8);            // Push PCH
     push(register_pc);                 // Push PCL
     push(register_flags);              // Push P
-    temp1 = read_byte(0xFFFA, false);  // Fetch Vector PCL
-    temp2 = read_byte(0xFFFB, false);  // Fetch Vector PCH
+    temp1 = read_byte(0xFFFA);  // Fetch Vector PCL
+    temp2 = read_byte(0xFFFB);  // Fetch Vector PCH
 
     register_flags = register_flags | 0x34; // Set the I flag and restore the B flag
 
     register_pc = (temp2 << 8) | temp1;
-    start_read(register_pc, true); // Fetch first opcode at vector PCH,PCL
+    start_read(register_pc); // Fetch first opcode at vector PCH,PCL
 
     Serial.println("[NMI Complete]");
 
@@ -617,7 +654,7 @@ void irq_handler(uint8_t opcode_is_brk)
 {
     uint16_t temp1, temp2;
 
-    sample_at_CLK_falling_edge(); // Begin processing on next CLK edge
+    sample_at_CLK0_falling_edge(); // Begin processing on next CLK edge
 
     register_flags = register_flags | 0x20; // Set the flag[5]
     if (opcode_is_brk == 1)
@@ -625,17 +662,17 @@ void irq_handler(uint8_t opcode_is_brk)
     else
         register_flags = register_flags & 0xEF; // Clear the B flag
 
-    read_byte(register_pc + 1, false); // Fetch PC+1 (Discard)
+    read_byte(register_pc + 1); // Fetch PC+1 (Discard)
     push(register_pc >> 8);            // Push PCH
     push(register_pc);                 // Push PCL
     push(register_flags);              // Push P
-    temp1 = read_byte(0xFFFE, false);  // Fetch Vector PCL
-    temp2 = read_byte(0xFFFF, false);  // Fetch Vector PCH
+    temp1 = read_byte(0xFFFE);  // Fetch Vector PCL
+    temp2 = read_byte(0xFFFF);  // Fetch Vector PCH
 
     register_flags = register_flags | 0x34; // Set the I flag and restore the B flag
 
     register_pc = (temp2 << 8) | temp1;
-    start_read(register_pc, true); // Fetch first opcode at vector PCH,PCL
+    start_read(register_pc); // Fetch first opcode at vector PCH,PCL
 
     Serial.println("[IRQ Complete]");
 
@@ -647,8 +684,8 @@ void irq_handler(uint8_t opcode_is_brk)
 
 void display_next_instruction(uint16_t pc, uint8_t opcode)
 {
-    uint8_t op1 = read_byte(pc + 1, false);
-    uint8_t op2 = read_byte(pc + 2, false);
+    uint8_t op1 = read_byte(pc + 1);
+    uint8_t op2 = read_byte(pc + 2);
 
     Serial.println(String(pc, HEX) + ": " + decode_instruction(opcode, op1, op2));
 }
@@ -767,12 +804,12 @@ String parse_next_arg(String &_src, String &remainder)
 
 uint16_t print_instruction(uint16_t address)
 {
-    uint8_t opcode = read_byte(address, false);
+    uint8_t opcode = read_byte(address);
     uint8_t instr_length = opcode_info[opcode].length;
 
     uint8_t operands[2] = {0, 0};
     for (uint8_t i = 0; i < instr_length - 1; i++)
-        operands[i] = read_byte(address + 1 + i, false);
+        operands[i] = read_byte(address + 1 + i);
 
     String s = decode_instruction(opcode, operands[0], operands[1]);
     Serial.println(String(address, HEX) + ": " + s);
@@ -855,9 +892,9 @@ ENUM_RUN_MODE process_command(String input)
         run_mode = RESETTING;
 
     case CMD_Test:
-        sample_at_CLK_falling_edge();
+        sample_at_CLK0_falling_edge();
         digitalWriteFast(PIN_SYNC, 0x1);
-        sample_at_CLK_falling_edge();
+        sample_at_CLK0_falling_edge();
         digitalWriteFast(PIN_SYNC, 0x0);
         break;
 
@@ -986,8 +1023,7 @@ ENUM_RUN_MODE process_command(String input)
                 Serial.print(s);
             }
 
-            //  Set SYNC while reading byte
-            byte data = read_byte(addr++, true);
+            byte data = read_byte(addr++);
 
             sprintf(s, "%02X ", data);
             Serial.print(s);
@@ -1027,13 +1063,13 @@ ENUM_RUN_MODE process_command(String input)
         word addr = strtoul(arg1.c_str(), 0, 16);
         byte data = strtoul(arg2.c_str(), 0, 16);
 
-        write_byte(addr, data, true);
+        write_byte(addr, data);
 
         while (remainder.length())
         {
             String d = parse_next_arg(remainder, remainder);
             data = strtoul(d.c_str(), 0, 16);
-            write_byte(++addr, data, true);
+            write_byte(++addr, data);
         }
         Serial.println("OK");
     }
@@ -1059,9 +1095,9 @@ void loop()
 
     // Give Teensy 4.1 a moment
     delay(50);
-    sample_at_CLK_falling_edge();
-    sample_at_CLK_falling_edge();
-    sample_at_CLK_falling_edge();
+    sample_at_CLK0_falling_edge();
+    sample_at_CLK0_falling_edge();
+    sample_at_CLK0_falling_edge();
 
     reset_sequence();
 
@@ -1080,7 +1116,7 @@ void loop()
             irq_handler(0x0);
 
         //        next_instruction = finish_read_byte();
-        next_instruction = read_byte(register_pc, false);
+        next_instruction = read_byte(register_pc);
 
         //============================================================================
         //  ICE interface code
@@ -1123,7 +1159,7 @@ void loop()
                 //  Update the next_instruction, as PC or memory may have changed
                 if ((run_mode != RUNNING) && (register_pc != temp_pc))
                 {
-                    next_instruction = read_byte(register_pc, false);
+                    next_instruction = read_byte(register_pc);
                     temp_pc = register_pc;
                 }
             } while (run_mode == WAITING);
