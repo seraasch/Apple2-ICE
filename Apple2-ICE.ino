@@ -1,47 +1,38 @@
 //
+//  MOS 6502 in-circuit emulator (ICE)
+//  Apple II+ version with acceleration via keystrokes or UART
 //
-//  File Name   :  MCL66_A2Plus_ICE.ino
-//  Used on     :
-//  Author      :  Ted Fried, MicroCore Labs
-//  Creation    :  1/1/2021
+//  Author: Steven Raasch  
+//  Based on work by:  Ted Fried, MicroCore Labs
 //
-//   Description:
-//   ============
+//  Description:
+//  ============
 //
-//  MOS 6502 emulator with bus interface.     Apple II+ version with acceleration via keystrokes or UART
+//  Accelerartion using Apple II keyboard keystrokes:
+//   - Press left-arrow(L), right-arrow(R), left-arrow(L), then the number for the addressing mode desired.
+//   - This method only works if the Apple II is scanning for keystrokes.  If not, then the UART method of acceleration must be used.
+//        Example:  press LRL3 for acceletaion moode 3
 //
+//  Accelerartion using the Teensy 4.1 USB UART
+//   - Open a UART terminal to the Teensy 4.1 board. You can use the Arduino GUI Tools --> Serial Monitor or any other terminal emulator
+//   - Simply send a number over the UART to the MCL65 board for the addressing mode desired
+//       Example:  press 3 for addressing moode 3
 //
-// Accelerartion using Apple II keyboard keystrokes:
-//  - Press left-arrow(L), right-arrow(R), left-arrow(L), then the number for the addressing mode desired.
-//  - This method only works if the Apple II is scanning for keystrokes.  If not, then the UART method of acceleration must be used.
-//      Example:  press LRL3 for acceletaion moode 3
+//  Acceleration addr_mode may also be hard-coded or the accelerated address ranges can be changed in internal_address_check() 
 //
-// Accelerartion using the Teensy 4.1 USB UART
-//  - Open a UART terminal to the Teensy 4.1 board. You can use the Arduino GUI Tools --> Serial Monitor or any other terminal emulator
-//  - Simply send a number over the UART to the MCL65 board for the addressing mode desired
-//      Example:  press 3 for addressing moode 3
+//--------------------------------------------------------------------------------------------------
 //
-// Acceleration addr_mode may also be hard-coded or the accelerated address ranges can be changed in the internal_address_check procedure below
-//------------------------------------------------------------------------
+//  This ICE was inspired by, and based on the original MLC65+ Emulator. I am very grateful to Ted
+//  for doing the hard work of creating the bus interface and implementing the instruction emulation
+//  that I use here.
 //
-// Modification History:
-// =====================
+//  See https://github.com/MicroCoreLabs/Projects for this and other of Ted's projects.
 //
-// Revision 1 1/1/2021
-// Initial revision
+//--------------------------------------------------------------------------------------------------
 //
-// Revision 2 9/22/2021
-// Added methods to change acceleration addr_modes
-//
-// Revision 2a 4/18/2023
-// Begin working on adding in-circuit emulator features
-//
-// Revision 2b 5/5/2023
-// Initial testing
-//
-//------------------------------------------------------------------------
 //
 // Copyright (c) 2021 Ted Fried
+// Copyright (c) 2025 Steven Raasch
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -69,7 +60,7 @@
 //     2 - Reads accelerated using internal memory and writes pass through to motherboard
 //     3 - All read and write accesses use accelerated internal memory
 
-#define VERSION_NUM "1.0c"
+#define VERSION_NUM "1.2"
 
 #define OFFLINE_DEBUG true
 
