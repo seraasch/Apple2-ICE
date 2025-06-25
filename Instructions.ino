@@ -80,11 +80,275 @@ String decode_instruction(uint8_t op, uint8_t op1, uint8_t op2)
     return (instr->opcode + " " + s);
 }
 
+//---------------------------------------------------------------------
+//  Print a human-readable version of the instruction at the specified
+//  address
+//---------------------------------------------------------------------
+uint16_t print_instruction(uint16_t address) {
+    uint8_t opcode = read_byte(address);
+    uint8_t instr_length = opcode_info[opcode].length;
+
+    uint8_t operands[2] = {0, 0};
+    for (uint8_t i = 0; i < instr_length - 1; i++)
+        operands[i] = read_byte(address + 1 + i);
+
+    String s = decode_instruction(opcode, operands[0], operands[1]);
+    Serial.println(String(address, HEX) + ": " + s);
+
+    return (address + instr_length);
+}
+
+
 //===================================================================
 //===================================================================
 //
-//   Each opcode has a function that emulates the execution of that
-//   opcode
+//  Utility functions used by the instructions during execution
+//
+//===================================================================
+//===================================================================
+
+void push(uint8_t push_data) {
+    write_byte(register_sp_fixed, push_data);
+    register_sp = register_sp - 1;
+    return;
+}
+
+uint8_t pop() {
+    uint8_t temp = 0;
+    register_sp = register_sp + 1;
+    temp = read_byte(register_sp_fixed);
+    return temp;
+}
+
+void Calc_Flags_NEGATIVE_ZERO(uint8_t local_data) {
+    if (0x80 & local_data)
+        register_flags = register_flags | 0x80;  // Set the N flag
+    else
+        register_flags = register_flags & 0x7F;  // Clear the N flag
+
+    if (local_data == 0)
+        register_flags = register_flags | 0x02;  // Set the Z flag
+    else
+        register_flags = register_flags & 0xFD;  // Clear the Z flag
+
+    return;
+}
+
+uint16_t Sign_Extend16(uint16_t reg_data) {
+    if ((reg_data & 0x0080) == 0x0080) {
+        return (reg_data | 0xFF00);
+    }
+    else {
+        return (reg_data & 0x00FF);
+    }
+}
+
+void Begin_Fetch_Next_Opcode() {
+    //    register_pc++;
+    //    start_read(register_pc, true);
+    //    return;
+}
+
+// -------------------------------------------------
+// Addressing Modes
+// -------------------------------------------------
+uint8_t Fetch_Immediate(uint8_t offset) {
+    return read_byte(register_pc + offset);
+}
+
+uint8_t Fetch_ZeroPage() {
+    effective_address = Fetch_Immediate(1);
+    return read_byte(effective_address);
+}
+
+uint8_t Fetch_ZeroPage_X() {
+    uint16_t bal;
+    bal = Fetch_Immediate(1);
+    read_byte(register_pc + 1);
+    effective_address = (0x00FF & (bal + register_x));
+    return read_byte(effective_address);
+}
+
+uint8_t Fetch_ZeroPage_Y() {
+    uint16_t bal;
+    bal = Fetch_Immediate(1);
+    read_byte(register_pc + 1);
+    effective_address = (0x00FF & (bal + register_y));
+    return read_byte(effective_address);
+}
+
+uint16_t Calculate_Absolute() {
+    uint16_t adl, adh;
+
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
+    effective_address = adl + adh;
+    return effective_address;
+}
+
+uint8_t Fetch_Absolute() {
+    uint16_t adl, adh;
+
+    adl = Fetch_Immediate(1);
+    adh = Fetch_Immediate(2) << 8;
+    effective_address = adl + adh;
+    return read_byte(effective_address);
+}
+
+uint8_t Fetch_Absolute_X(uint8_t page_cross_check) {
+    uint16_t bal, bah;
+    uint8_t local_data;
+
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
+    effective_address = bah + bal + register_x;
+    local_data = read_byte(effective_address);
+
+    if (page_cross_check == 1 &&
+        ((0xFF00 & effective_address) != (0xFF00 & bah))) {
+        local_data = read_byte(effective_address);
+    }
+    return local_data;
+}
+
+uint8_t Fetch_Absolute_Y(uint8_t page_cross_check) {
+    uint16_t bal, bah;
+    uint8_t local_data;
+
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
+    effective_address = bah + bal + register_y;
+    local_data = read_byte(effective_address);
+
+    if (page_cross_check == 1 &&
+        ((0xFF00 & effective_address) != (0xFF00 & bah))) {
+        local_data = read_byte(effective_address);
+    }
+    return local_data;
+}
+
+uint8_t Fetch_Indexed_Indirect_X() {
+    uint16_t bal;
+    uint16_t adl, adh;
+    uint8_t local_data;
+
+    bal = Fetch_Immediate(1) + register_x;
+    read_byte(bal);
+    adl = read_byte(0xFF & bal);
+    adh = read_byte(0xFF & (bal + 1)) << 8;
+    effective_address = adh + adl;
+    local_data = read_byte(effective_address);
+    return local_data;
+}
+
+uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check) {
+    uint16_t ial, bah, bal;
+    uint8_t local_data;
+
+    ial = Fetch_Immediate(1);
+    bal = read_byte(0xFF & ial);
+    bah = read_byte(0xFF & (ial + 1)) << 8;
+
+    effective_address = bah + bal + register_y;
+    local_data = read_byte(effective_address);
+
+    if (page_cross_check == 1 &&
+        ((0xFF00 & effective_address) != (0xFF00 & bah))) {
+        local_data = read_byte(effective_address);
+    }
+    return local_data;
+}
+
+void Write_ZeroPage(uint8_t local_data) {
+    effective_address = Fetch_Immediate(1);
+    write_byte(effective_address, local_data);
+    return;
+}
+
+void Write_Absolute(uint8_t local_data) {
+    effective_address = Fetch_Immediate(1);
+    effective_address = (Fetch_Immediate(2) << 8) + effective_address;
+    write_byte(effective_address, local_data);
+    return;
+}
+
+void Write_ZeroPage_X(uint8_t local_data) {
+    effective_address = Fetch_Immediate(1);
+    read_byte(effective_address);
+    write_byte((0x00FF & (effective_address + register_x)), local_data);
+    return;
+}
+
+void Write_ZeroPage_Y(uint8_t local_data) {
+    effective_address = Fetch_Immediate(1);
+    read_byte(effective_address);
+    write_byte((0x00FF & (effective_address + register_y)), local_data);
+    return;
+}
+
+void Write_Absolute_X(uint8_t local_data) {
+    uint16_t bal, bah;
+
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
+    effective_address = bal + bah + register_x;
+    read_byte(effective_address);
+    write_byte(effective_address, local_data);
+    return;
+}
+
+void Write_Absolute_Y(uint8_t local_data) {
+    uint16_t bal, bah;
+
+    bal = Fetch_Immediate(1);
+    bah = Fetch_Immediate(2) << 8;
+    effective_address = bal + bah + register_y;
+    read_byte(effective_address);
+
+    if ((0xFF00 & effective_address) != (0xFF00 & bah)) {
+        read_byte(effective_address);
+    }
+    write_byte(effective_address, local_data);
+    return;
+}
+
+void Write_Indexed_Indirect_X(uint8_t local_data) {
+    uint16_t bal;
+    uint16_t adl, adh;
+
+    bal = Fetch_Immediate(1);
+    read_byte(bal);
+    adl = read_byte(0xFF & (bal + register_x));
+    adh = read_byte(0xFF & (bal + register_x + 1)) << 8;
+    effective_address = adh + adl;
+    write_byte(effective_address, local_data);
+    return;
+}
+
+void Write_Indexed_Indirect_Y(uint8_t local_data) {
+    uint16_t ial;
+    uint16_t bal, bah;
+
+    ial = Fetch_Immediate(1);
+    bal = read_byte(ial);
+    bah = read_byte(ial + 1) << 8;
+    effective_address = bah + bal + register_y;
+    read_byte(effective_address);
+    write_byte(effective_address, local_data);
+    return;
+}
+
+void Double_WriteBack(uint8_t local_data) {
+    write_byte(effective_address, local_data);
+    write_byte(effective_address, local_data);
+    return;
+}
+
+
+//===================================================================
+//===================================================================
+//
+//   Functions used to execute each opcode
 //
 //===================================================================
 //===================================================================

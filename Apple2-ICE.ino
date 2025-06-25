@@ -2,7 +2,7 @@
 //  MOS 6502 in-circuit emulator (ICE)
 //  Apple II+ version with acceleration via keystrokes or UART
 //
-//  Author: Steven Raasch  
+//  Author: Steven Raasch
 //  Based on work by:  Ted Fried, MicroCore Labs
 //
 //  Description:
@@ -18,7 +18,7 @@
 //   - Simply send a number over the UART to the MCL65 board for the addressing mode desired
 //       Example:  press 3 for addressing moode 3
 //
-//  Acceleration addr_mode may also be hard-coded or the accelerated address ranges can be changed in internal_address_check() 
+//  Acceleration addr_mode may also be hard-coded or the accelerated address ranges can be changed in internal_address_check()
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -68,16 +68,10 @@
 
 #include "Apple2-ICE.h"
 
-
-
-
-enum ENUM_RUN_MODE
-{
-    WAITING = 0,
-    SINGLE_STEP,
-    RUNNING,
-    RESETTING
-};
+enum ENUM_RUN_MODE { WAITING = 0,
+                     SINGLE_STEP,
+                     RUNNING,
+                     RESETTING };
 
 //-------------------------------------------------------------------------
 //  Interface to the Bus Interface Unit
@@ -90,8 +84,7 @@ void initialize_roms();
 //-------------------------------------------------------------------------
 //   Interface to the opcode_decoder.ino
 //-------------------------------------------------------------------------
-struct OpDecoder
-{
+struct OpDecoder {
     String opcode;
     String operands;
     String flags;
@@ -107,14 +100,13 @@ void initialize_opcode_info();
 //
 // 6502 Flags
 //
-#define flag_n (register_flags & 0x80) >> 7 // register_flags[7]
-#define flag_v (register_flags & 0x40) >> 6 // register_flags[6]
-#define flag_b (register_flags & 0x10) >> 4 // register_flags[4]
-#define flag_d (register_flags & 0x08) >> 3 // register_flags[3]
-#define flag_i (register_flags & 0x04) >> 2 // register_flags[2]
-#define flag_z (register_flags & 0x02) >> 1 // register_flags[1]
-#define flag_c (register_flags & 0x01) >> 0 // register_flags[0]
-
+#define flag_n (register_flags & 0x80) >> 7  // register_flags[7]
+#define flag_v (register_flags & 0x40) >> 6  // register_flags[6]
+#define flag_b (register_flags & 0x10) >> 4  // register_flags[4]
+#define flag_d (register_flags & 0x08) >> 3  // register_flags[3]
+#define flag_i (register_flags & 0x04) >> 2  // register_flags[2]
+#define flag_z (register_flags & 0x02) >> 1  // register_flags[1]
+#define flag_c (register_flags & 0x01) >> 0  // register_flags[0]
 
 //-------------------------------------------------
 //
@@ -122,8 +114,7 @@ void initialize_opcode_info();
 //
 #define register_sp_fixed (0x0100 | register_sp)
 
-enum ADDR_MODE
-{
+enum ADDR_MODE {
     All_External = 0,
     Read_Internal_Write_External,
     Read_Fast_Internal_Write_External,
@@ -163,7 +154,7 @@ String flag_status(void) {
     s = s + (flag_v ? "V" : "-");
     s = s + (flag_n ? "N" : "-");
 
-    return(s);
+    return (s);
 }
 
 // ------------------------------------------------------------------------------
@@ -175,25 +166,28 @@ String flag_status(void) {
 // Take the first two characters and turn them into a value that can be used in a switch/case statement
 #define command_int(_str_) (((word)_str_[0] << 8) + (word)_str_[1])
 
-const word CMD_MD = command_int("md");   // MD - Memory addressing mode
-const word CMD_RS = command_int("rs");   // RS - Reset CPU
-const word CMD_SS = command_int("ss");   // SS - Single Step
-const word CMD_GO = command_int("go");   // GO - Execute from current PC
-const word CMD_BK = command_int("bk");   // BK - Set a breakpoint
-const word CMD_RD = command_int("rd");   // RD - Read from memory
-const word CMD_WR = command_int("wr");   // WR - Write to memory
-const word CMD_FI = command_int("fi");   // FI - Fill memory with a value
-const word CMD_DR = command_int("dr");   // DR - Display registers
-const word CMD_SR = command_int("sr");   // SR - Display individual register (pc, a, x, y)
-const word CMD_TR = command_int("tr");   // TR - Enable PC Tracing
-const word CMD_FE = command_int("fe");   // FE - Execution fencing
-const word CMD_LI = command_int("li");   // LI - List instructions
-const word CMD_IN = command_int("in");   // IN - Display info
-const word CMD_DE = command_int("de");   // DE - Toggle debug mode
-const word CMD_QM = command_int("?\0");  // ?  - Help
-const word CMD_HE = command_int("h\0");  // H  - Help
-const word CMD_Test = command_int("tt"); // tt -- TEST operation
+const word CMD_MD = command_int("md");    // MD - Memory addressing mode
+const word CMD_RS = command_int("rs");    // RS - Reset CPU
+const word CMD_SS = command_int("ss");    // SS - Single Step
+const word CMD_GO = command_int("go");    // GO - Execute from current PC
+const word CMD_BK = command_int("bk");    // BK - Set a breakpoint
+const word CMD_RD = command_int("rd");    // RD - Read from memory
+const word CMD_WR = command_int("wr");    // WR - Write to memory
+const word CMD_FI = command_int("fi");    // FI - Fill memory with a value
+const word CMD_DR = command_int("dr");    // DR - Display registers
+const word CMD_SR = command_int("sr");    // SR - Display individual register (pc, a, x, y)
+const word CMD_TR = command_int("tr");    // TR - Enable PC Tracing
+const word CMD_FE = command_int("fe");    // FE - Execution fencing
+const word CMD_LI = command_int("li");    // LI - List instructions
+const word CMD_IN = command_int("in");    // IN - Display info
+const word CMD_DE = command_int("de");    // DE - Toggle debug mode
+const word CMD_QM = command_int("?\0");   // ?  - Help
+const word CMD_HE = command_int("h\0");   // H  - Help
+const word CMD_Test = command_int("tt");  // tt -- TEST operation
 const word CMD_NOP = 0;
+
+const int max_command_parts = 10;
+
 
 word breakpoint = 0;
 word runto_address = 0;
@@ -204,28 +198,24 @@ bool run_fence = false;
 uint16_t run_fence_low, run_fence_high;
 
 ENUM_RUN_MODE run_mode;
-const char *run_mode_str[] = {"Waiting", "Single-Step", "Running", "Resetting"};
+const char* run_mode_str[] = {"Waiting", "Single-Step", "Running", "Resetting"};
 
 bool debug_mode = true;
-String last_command = "";
+String last_user_command = "";
 
 // -------------------------------------------------
 // Check for CLK activity --> determines debug mode
 // -------------------------------------------------
-bool check_for_CLK_activity()
-{
+bool check_for_CLK_activity() {
     unsigned long start = millis();
-    while (((GPIO6_DR >> 12) & 0x1) == 0)
-    { // Teensy 4.1 Pin-24  GPIO6_DR[12]  CLK
-        if (millis() - start > 500)
-        {
+    while (((GPIO6_DR >> 12) & 0x1) ==
+           0) {  // Teensy 4.1 Pin-24  GPIO6_DR[12]  CLK
+        if (millis() - start > 500) {
             return (false);
         }
     }
-    while (((GPIO6_DR >> 12) & 0x1) != 0)
-    {
-        if (millis() - start > 500)
-        {
+    while (((GPIO6_DR >> 12) & 0x1) != 0) {
+        if (millis() - start > 500) {
             return (false);
         }
     }
@@ -238,16 +228,14 @@ bool check_for_CLK_activity()
 
 // Setup Teensy 4.1 IO's
 //
-void setup()
-{
-
+void setup() {
     pinMode(PIN_CLK0_INV, INPUT);
     pinMode(PIN_RESET, INPUT);
     pinMode(PIN_READY_n, INPUT);
     pinMode(PIN_IRQ, INPUT);
     pinMode(PIN_NMI, INPUT);
     pinMode(PIN_RDWR_n, OUTPUT);
-    pinMode(PIN_SYNC, OUTPUT);    // We don't assert this signal ATM
+    pinMode(PIN_SYNC, OUTPUT);  // We don't assert this signal ATM
 
     pinMode(PIN_ADDR0, OUTPUT);
     pinMode(PIN_ADDR1, OUTPUT);
@@ -290,19 +278,19 @@ void setup()
     Serial.begin(115200);
     Serial.setTimeout(5000);
 
-    Serial.println(String("Apple ][+ In-circuit Emulator\n\rVersion ") + VERSION_NUM);
+    Serial.println(String("Apple ][+ In-circuit Emulator\n\rVersion ") +
+                   VERSION_NUM);
 
-    if (!check_for_CLK_activity())
-    {
+    if (!check_for_CLK_activity()) {
         debug_mode = true;
         addr_mode = All_Fast_Internal;
         Serial.println("No CLK activity detected. Starting in DEBUG MODE using INTERNAL MEMORY");
     }
-    else
-    {
+    else {
         debug_mode = false;
         addr_mode = All_External;
-        Serial.println("CLK activity detected... Starting in NORMAL MODE using external memory");
+        Serial.println(
+            "CLK activity detected... Starting in NORMAL MODE using external memory");
     }
 
     run_mode = WAITING;
@@ -318,303 +306,35 @@ void setup()
     sample_at_CLK0_falling_edge();
 
     reset_sequence();
-
-}
-
-void push(uint8_t push_data)
-{
-    write_byte(register_sp_fixed, push_data);
-    register_sp = register_sp - 1;
-    return;
-}
-
-uint8_t pop()
-{
-    uint8_t temp = 0;
-    register_sp = register_sp + 1;
-    temp = read_byte(register_sp_fixed);
-    return temp;
-}
-
-void Calc_Flags_NEGATIVE_ZERO(uint8_t local_data)
-{
-
-    if (0x80 & local_data)
-        register_flags = register_flags | 0x80; // Set the N flag
-    else
-        register_flags = register_flags & 0x7F; // Clear the N flag
-
-    if (local_data == 0)
-        register_flags = register_flags | 0x02; // Set the Z flag
-    else
-        register_flags = register_flags & 0xFD; // Clear the Z flag
-
-    return;
-}
-
-uint16_t Sign_Extend16(uint16_t reg_data)
-{
-    if ((reg_data & 0x0080) == 0x0080)
-    {
-        return (reg_data | 0xFF00);
-    }
-    else
-    {
-        return (reg_data & 0x00FF);
-    }
-}
-
-void Begin_Fetch_Next_Opcode()
-{
-    //    register_pc++;
-    //    start_read(register_pc, true);
-    //    return;
-}
-
-// -------------------------------------------------
-// Addressing Modes
-// -------------------------------------------------
-uint8_t Fetch_Immediate(uint8_t offset)
-{
-    return read_byte(register_pc + offset);
-}
-
-uint8_t Fetch_ZeroPage()
-{
-    effective_address = Fetch_Immediate(1);
-    return read_byte(effective_address);
-}
-
-uint8_t Fetch_ZeroPage_X()
-{
-    uint16_t bal;
-    bal = Fetch_Immediate(1);
-    read_byte(register_pc + 1);
-    effective_address = (0x00FF & (bal + register_x));
-    return read_byte(effective_address);
-}
-
-uint8_t Fetch_ZeroPage_Y()
-{
-    uint16_t bal;
-    bal = Fetch_Immediate(1);
-    read_byte(register_pc + 1);
-    effective_address = (0x00FF & (bal + register_y));
-    return read_byte(effective_address);
-}
-
-uint16_t Calculate_Absolute()
-{
-    uint16_t adl, adh;
-
-    adl = Fetch_Immediate(1);
-    adh = Fetch_Immediate(2) << 8;
-    effective_address = adl + adh;
-    return effective_address;
-}
-
-uint8_t Fetch_Absolute()
-{
-    uint16_t adl, adh;
-
-    adl = Fetch_Immediate(1);
-    adh = Fetch_Immediate(2) << 8;
-    effective_address = adl + adh;
-    return read_byte(effective_address);
-}
-
-uint8_t Fetch_Absolute_X(uint8_t page_cross_check)
-{
-    uint16_t bal, bah;
-    uint8_t local_data;
-
-    bal = Fetch_Immediate(1);
-    bah = Fetch_Immediate(2) << 8;
-    effective_address = bah + bal + register_x;
-    local_data = read_byte(effective_address);
-
-    if (page_cross_check == 1 && ((0xFF00 & effective_address) != (0xFF00 & bah)))
-    {
-        local_data = read_byte(effective_address);
-    }
-    return local_data;
-}
-
-uint8_t Fetch_Absolute_Y(uint8_t page_cross_check)
-{
-    uint16_t bal, bah;
-    uint8_t local_data;
-
-    bal = Fetch_Immediate(1);
-    bah = Fetch_Immediate(2) << 8;
-    effective_address = bah + bal + register_y;
-    local_data = read_byte(effective_address);
-
-    if (page_cross_check == 1 && ((0xFF00 & effective_address) != (0xFF00 & bah)))
-    {
-        local_data = read_byte(effective_address);
-    }
-    return local_data;
-}
-
-uint8_t Fetch_Indexed_Indirect_X()
-{
-    uint16_t bal;
-    uint16_t adl, adh;
-    uint8_t local_data;
-
-    bal = Fetch_Immediate(1) + register_x;
-    read_byte(bal);
-    adl = read_byte(0xFF & bal);
-    adh = read_byte(0xFF & (bal + 1)) << 8;
-    effective_address = adh + adl;
-    local_data = read_byte(effective_address);
-    return local_data;
-}
-
-uint8_t Fetch_Indexed_Indirect_Y(uint8_t page_cross_check)
-{
-    uint16_t ial, bah, bal;
-    uint8_t local_data;
-
-    ial = Fetch_Immediate(1);
-    bal = read_byte(0xFF & ial);
-    bah = read_byte(0xFF & (ial + 1)) << 8;
-
-    effective_address = bah + bal + register_y;
-    local_data = read_byte(effective_address);
-
-    if (page_cross_check == 1 && ((0xFF00 & effective_address) != (0xFF00 & bah)))
-    {
-        local_data = read_byte(effective_address);
-    }
-    return local_data;
-}
-
-void Write_ZeroPage(uint8_t local_data)
-{
-    effective_address = Fetch_Immediate(1);
-    write_byte(effective_address, local_data);
-    return;
-}
-
-void Write_Absolute(uint8_t local_data)
-{
-    effective_address = Fetch_Immediate(1);
-    effective_address = (Fetch_Immediate(2) << 8) + effective_address;
-    write_byte(effective_address, local_data);
-    return;
-}
-
-void Write_ZeroPage_X(uint8_t local_data)
-{
-    effective_address = Fetch_Immediate(1);
-    read_byte(effective_address);
-    write_byte((0x00FF & (effective_address + register_x)), local_data);
-    return;
-}
-
-void Write_ZeroPage_Y(uint8_t local_data)
-{
-    effective_address = Fetch_Immediate(1);
-    read_byte(effective_address);
-    write_byte((0x00FF & (effective_address + register_y)), local_data);
-    return;
-}
-
-void Write_Absolute_X(uint8_t local_data)
-{
-    uint16_t bal, bah;
-
-    bal = Fetch_Immediate(1);
-    bah = Fetch_Immediate(2) << 8;
-    effective_address = bal + bah + register_x;
-    read_byte(effective_address);
-    write_byte(effective_address, local_data);
-    return;
-}
-
-void Write_Absolute_Y(uint8_t local_data)
-{
-    uint16_t bal, bah;
-
-    bal = Fetch_Immediate(1);
-    bah = Fetch_Immediate(2) << 8;
-    effective_address = bal + bah + register_y;
-    read_byte(effective_address);
-
-    if ((0xFF00 & effective_address) != (0xFF00 & bah))
-    {
-        read_byte(effective_address);
-    }
-    write_byte(effective_address, local_data);
-    return;
-}
-
-void Write_Indexed_Indirect_X(uint8_t local_data)
-{
-    uint16_t bal;
-    uint16_t adl, adh;
-
-    bal = Fetch_Immediate(1);
-    read_byte(bal);
-    adl = read_byte(0xFF & (bal + register_x));
-    adh = read_byte(0xFF & (bal + register_x + 1)) << 8;
-    effective_address = adh + adl;
-    write_byte(effective_address, local_data);
-    return;
-}
-
-void Write_Indexed_Indirect_Y(uint8_t local_data)
-{
-    uint16_t ial;
-    uint16_t bal, bah;
-
-    ial = Fetch_Immediate(1);
-    bal = read_byte(ial);
-    bah = read_byte(ial + 1) << 8;
-    effective_address = bah + bal + register_y;
-    read_byte(effective_address);
-    write_byte(effective_address, local_data);
-    return;
-}
-
-void Double_WriteBack(uint8_t local_data)
-{
-    write_byte(effective_address, local_data);
-    write_byte(effective_address, local_data);
-    return;
 }
 
 // -------------------------------------------------
 // Reset sequence for the 6502
 // -------------------------------------------------
-void reset_sequence()
-{
+void reset_sequence() {
     uint16_t temp1, temp2;
 
 #ifndef OFFLINE_DEBUG
-    while (digitalReadFast(PIN_RESET) != 0)
-    {
-    } // Stay here until RESET deasserts
+    while (digitalReadFast(PIN_RESET) != 0) {
+    }  // Stay here until RESET deasserts
 #endif
 
     digitalWriteFast(PIN_RDWR_n, 0x1);
     digitalWriteFast(PIN_DATAOUT_OE_n, 0x1);
 
-    temp1 = read_byte(register_pc);           // Address ??
-    temp1 = read_byte(register_pc + 1);       // Address ?? + 1
-    temp1 = read_byte(register_sp_fixed);     // Address SP
-    temp1 = read_byte(register_sp_fixed - 1); // Address SP - 1
-    temp1 = read_byte(register_sp_fixed - 2); // Address SP - 2
+    temp1 = read_byte(register_pc);            // Address ??
+    temp1 = read_byte(register_pc + 1);        // Address ?? + 1
+    temp1 = read_byte(register_sp_fixed);      // Address SP
+    temp1 = read_byte(register_sp_fixed - 1);  // Address SP - 1
+    temp1 = read_byte(register_sp_fixed - 2);  // Address SP - 2
 
-    temp1 = read_byte(0xFFFC); // Fetch Vector PCL
-    temp2 = read_byte(0xFFFD); // Fetch Vector PCH
+    temp1 = read_byte(0xFFFC);  // Fetch Vector PCL
+    temp2 = read_byte(0xFFFD);  // Fetch Vector PCH
 
-    register_flags = 0x34; // Set the I and B flags
+    register_flags = 0x34;  // Set the I and B flags
 
     register_pc = (temp2 << 8) | temp1;
-    start_read(register_pc); // Fetch first opcode at vector PCH,PCL
+    start_read(register_pc);  // Fetch first opcode at vector PCH,PCL
 
     Serial.println("[RESET Complete]");
 
@@ -624,26 +344,26 @@ void reset_sequence()
 // -------------------------------------------------
 // NMI Interrupt Processing
 // -------------------------------------------------
-void nmi_handler()
-{
+void nmi_handler() {
     uint16_t temp1, temp2;
 
-    sample_at_CLK0_falling_edge(); // Begin processing on next CLK edge
+    sample_at_CLK0_falling_edge();  // Begin processing on next CLK edge
 
-    register_flags = register_flags | 0x20; // Set the flag[5]
-    register_flags = register_flags & 0xEF; // Clear the B flag
+    register_flags = register_flags | 0x20;  // Set the flag[5]
+    register_flags = register_flags & 0xEF;  // Clear the B flag
 
-    read_byte(register_pc + 1); // Fetch PC+1 (Discard)
-    push(register_pc >> 8);            // Push PCH
-    push(register_pc);                 // Push PCL
-    push(register_flags);              // Push P
-    temp1 = read_byte(0xFFFA);  // Fetch Vector PCL
-    temp2 = read_byte(0xFFFB);  // Fetch Vector PCH
+    read_byte(register_pc + 1);  // Fetch PC+1 (Discard)
+    push(register_pc >> 8);      // Push PCH
+    push(register_pc);           // Push PCL
+    push(register_flags);        // Push P
+    temp1 = read_byte(0xFFFA);   // Fetch Vector PCL
+    temp2 = read_byte(0xFFFB);   // Fetch Vector PCH
 
-    register_flags = register_flags | 0x34; // Set the I flag and restore the B flag
+    register_flags =
+        register_flags | 0x34;  // Set the I flag and restore the B flag
 
     register_pc = (temp2 << 8) | temp1;
-    start_read(register_pc); // Fetch first opcode at vector PCH,PCL
+    start_read(register_pc);  // Fetch first opcode at vector PCH,PCL
 
     Serial.println("[NMI Complete]");
 
@@ -653,29 +373,29 @@ void nmi_handler()
 // -------------------------------------------------
 // BRK & IRQ Interrupt Processing
 // -------------------------------------------------
-void irq_handler(uint8_t opcode_is_brk)
-{
+void irq_handler(uint8_t opcode_is_brk) {
     uint16_t temp1, temp2;
 
-    sample_at_CLK0_falling_edge(); // Begin processing on next CLK edge
+    sample_at_CLK0_falling_edge();  // Begin processing on next CLK edge
 
-    register_flags = register_flags | 0x20; // Set the flag[5]
+    register_flags = register_flags | 0x20;  // Set the flag[5]
     if (opcode_is_brk == 1)
-        register_flags = register_flags | 0x10; // Set the B flag
+        register_flags = register_flags | 0x10;  // Set the B flag
     else
-        register_flags = register_flags & 0xEF; // Clear the B flag
+        register_flags = register_flags & 0xEF;  // Clear the B flag
 
-    read_byte(register_pc + 1); // Fetch PC+1 (Discard)
-    push(register_pc >> 8);            // Push PCH
-    push(register_pc);                 // Push PCL
-    push(register_flags);              // Push P
-    temp1 = read_byte(0xFFFE);  // Fetch Vector PCL
-    temp2 = read_byte(0xFFFF);  // Fetch Vector PCH
+    read_byte(register_pc + 1);  // Fetch PC+1 (Discard)
+    push(register_pc >> 8);      // Push PCH
+    push(register_pc);           // Push PCL
+    push(register_flags);        // Push P
+    temp1 = read_byte(0xFFFE);   // Fetch Vector PCL
+    temp2 = read_byte(0xFFFF);   // Fetch Vector PCH
 
-    register_flags = register_flags | 0x34; // Set the I flag and restore the B flag
+    register_flags =
+        register_flags | 0x34;  // Set the I flag and restore the B flag
 
     register_pc = (temp2 << 8) | temp1;
-    start_read(register_pc); // Fetch first opcode at vector PCH,PCL
+    start_read(register_pc);  // Fetch first opcode at vector PCH,PCL
 
     Serial.println("[IRQ Complete]");
 
@@ -685,71 +405,64 @@ void irq_handler(uint8_t opcode_is_brk)
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
 
-void display_next_instruction(uint16_t pc, uint8_t opcode)
-{
+void display_next_instruction(uint16_t pc, uint8_t opcode) {
     uint8_t op1 = read_byte(pc + 1);
     uint8_t op2 = read_byte(pc + 2);
 
-    Serial.println(String(pc, HEX) + ": " + decode_instruction(opcode, op1, op2));
+    Serial.println(String(pc, HEX) + ": " +
+                   decode_instruction(opcode, op1, op2));
 }
 
-void display_registers()
-{
+void display_registers() {
     char buf[32];
-    sprintf(buf, "Registers:  A=%02X, X=%02X, Y=%02X", register_a, register_x, register_y);
+    sprintf(buf, "Registers:  A=%02X, X=%02X, Y=%02X", register_a, register_x,
+            register_y);
     Serial.println(buf);
-    sprintf(buf, "            PC=%04X, SP=%04X", register_pc, register_sp_fixed);
+    sprintf(buf, "            PC=%04X, SP=%04X", register_pc,
+            register_sp_fixed);
     Serial.println(buf);
     sprintf(buf, "            Flags: %s", flag_status().c_str());
     Serial.println(buf);
 }
 
-void display_info()
-{
+void display_info() {
     char buf[64];
-    sprintf(buf, "Run-mode = %s, Address-mode = %d\n\rBreakpoint = %04X", run_mode_str[run_mode], addr_mode, breakpoint);
+    sprintf(buf, "Run-mode = %s, Address-mode = %d\n\rBreakpoint = %04X",
+            run_mode_str[run_mode], addr_mode, breakpoint);
     Serial.println(buf);
 }
 
-String get_command()
-{
+String get_user_command() {
     String s = "";
 
     // Print prompt
     Serial.print(">> ");
-    while (1)
-    {
-        if (Serial.available())
-        {
+    while (1) {
+        if (Serial.available()) {
             char c = Serial.read();
             // Serial.println("got 0x" + String(c, 16));
-            switch (c)
-            {
-            case '\r':
-                return (s.toLowerCase());
-                break;
-            case '\b':
-                s.remove(s.length() - 1, 1);
-                Serial.print("\b \b");
-                break;
-            default:
-                if (isprint(c))
-                {
-                    s.concat(c);
-                    Serial.print(c);
-                }
-                break;
+            switch (c) {
+                case '\r':
+                    return (s.toLowerCase());
+                    break;
+                case '\b':
+                    s.remove(s.length() - 1, 1);
+                    Serial.print("\b \b");
+                    break;
+                default:
+                    if (isprint(c)) {
+                        s.concat(c);
+                        Serial.print(c);
+                    }
+                    break;
             }
         }
     }
 }
 
-String get_arg(String args, uint8_t arg_number)
-{
-
+String get_arg(String args, uint8_t arg_number) {
     //  Remove all multi-space substrings and use "|" between args
-    do
-    {
+    do {
         args.replace("  ", " ");
     } while (args.indexOf("  ") >= 0);
     args.replace(" ", "|");
@@ -760,12 +473,11 @@ String get_arg(String args, uint8_t arg_number)
 
     int start_idx = 0;
     int end_idx;
-    for (int i = 0; i <= arg_number; i++)
-    {
+    for (int i = 0; i <= arg_number; i++) {
         if (i > 0)
             start_idx = end_idx + 1;
         end_idx = args.indexOf(" ", start_idx);
-        if (end_idx == -1) // Must be last arg
+        if (end_idx == -1)  // Must be last arg
             end_idx = args.length();
     }
 
@@ -773,27 +485,23 @@ String get_arg(String args, uint8_t arg_number)
     return (rv);
 }
 
-String parse_next_arg(String &_src, String &remainder)
-{
+String parse_next_arg(String& _src, String& remainder) {
     String arg = "";
 
     String src = _src.trim();
 
     // zero-length means nothing to parse
-    if (src.length())
-    {
+    if (src.length()) {
         int idx = src.indexOf(' ');
 
         // Serial.print("idx = "+String(idx) + ", ");
 
-        if (idx > 0)
-        {
+        if (idx > 0) {
             //  Space in source, pull first arg
             arg = src.substring(0, idx);
             remainder = src.substring(idx + 1);
         }
-        else
-        {
+        else {
             // No space... just one arg
             arg = src;
             remainder = "";
@@ -805,36 +513,55 @@ String parse_next_arg(String &_src, String &remainder)
     return arg;
 }
 
-uint16_t print_instruction(uint16_t address)
-{
-    uint8_t opcode = read_byte(address);
-    uint8_t instr_length = opcode_info[opcode].length;
 
-    uint8_t operands[2] = {0, 0};
-    for (uint8_t i = 0; i < instr_length - 1; i++)
-        operands[i] = read_byte(address + 1 + i);
+String* tokenize(String str, int max_substrings) {
+    String substrings[max_substrings];
 
-    String s = decode_instruction(opcode, operands[0], operands[1]);
-    Serial.println(String(address, HEX) + ": " + s);
+    for (int i = 0; i < max_substrings; i++)
+        substrings[i] = ""
 
-    return (address + instr_length);
+            int substring_count = 0;
+    while (str.length() > 0) {
+
+        int index = str.indexOf(' ');
+        if (index == -1) {
+            // No space found
+            substrings[substring_count++] = str;
+            break;
+        }
+        else {
+            substrings[substring_count++] = str.substring(0, index);
+            str = str.substring(index + 1);
+        }
+    }
 }
 
-void list_instructions(uint16_t addr, uint8_t count)
-{
+
+
+void list_instructions(uint16_t addr, uint8_t count) {
     uint16_t next_pc = addr;
-    for (uint8_t i = 0; i < count; i++)
-    {
+    for (uint8_t i = 0; i < count; i++) {
         // print the instruction at next_pc and return the address
         // of the following instruction
         next_pc = print_instruction(next_pc);
     }
 }
 
-ENUM_RUN_MODE process_command(String input)
-{
-
+ENUM_RUN_MODE process_user_command(String input) {
     // Serial.println("\nProcessing command: "+input);
+
+    String *command_parts;
+    command_parts = tokenize(input.toLowerCase, max_command_parts);
+
+    String command = command_parts[0];
+
+    String arg[max_command_parts-1];
+    for (int i=1; i<max_command_parts; i++)
+        arg[i-1] = command_parts[i];
+
+    Serial.println("Tokenized command and args: \'" + command + "\', \'" + arg[0] + "\', \'" +
+                   arg[1] + "\', '" + arg[2] + "'");
+
 
     //
     //  All commands are of the form: <2-char command>( <arg> (<arg> ...))
@@ -848,7 +575,8 @@ ENUM_RUN_MODE process_command(String input)
 
     word cmd_int = command_int(cmd);
 
-    Serial.println("Command and args: \'"+cmd+"\', \'"+arg1+"\', \'"+arg2+"\', '"+arg3+"'");
+    //Serial.println("Command and args: \'" + cmd + "\', \'" + arg1 + "\', \'" +
+    //               arg2 + "\', '" + arg3 + "'");
     // char buf[32];
     // sprintf(buf, "Command-int = %04X", cmd_int);
     // Serial.println(buf);
@@ -864,7 +592,7 @@ ENUM_RUN_MODE process_command(String input)
                 pc_trace_index = 0;
             break;
 
-        case CMD_LI: 
+        case CMD_LI:
         {
             int nargs = (arg1.length() > 0) + (arg2.length() > 0);
             if (nargs == 0) {
@@ -882,8 +610,7 @@ ENUM_RUN_MODE process_command(String input)
                 uint8_t count = strtol(arg2.c_str(), 0, 8);
                 list_instructions(start_address, count);
             }
-            }
-            break;
+        } break;
 
         case CMD_RS:
             run_mode = RESETTING;  // may not need this any more
@@ -903,48 +630,54 @@ ENUM_RUN_MODE process_command(String input)
             break;
 
         case CMD_FI:
-            if (3 == (arg1.length() > 0) + (arg2.length() > 0) + (arg3.length() > 0)) {
+            if (3 == (arg1.length() > 0) + (arg2.length() > 0) +
+                         (arg3.length() > 0)) {
                 uint16_t addr = strtoul(arg1.c_str(), 0, 16);
                 uint16_t count = arg2.toInt();
                 uint8_t value = strtoul(arg3.c_str(), 0, 16) & 0xFF;
 
-                String s = "Filling " + String(count) + " bytes from " + String(addr, HEX) + " with value " + String(value, HEX);
+                String s = "Filling " + String(count) + " bytes from " +
+                           String(addr, HEX) + " with value " +
+                           String(value, HEX);
                 Serial.println(s);
 
-                for (int i=0; i<count; i++) {
-                    write_byte(addr+i, value);
+                for (int i = 0; i < count; i++) {
+                    write_byte(addr + i, value);
                 }
             }
             else {
-                Serial.println("Fill command requires <address> <count> <value>");
+                Serial.println(
+                    "Fill command requires <address> <count> <value>");
             }
             break;
 
         case CMD_QM:
         case CMD_HE:
-            Serial.println(String("Available Commands:\n\r") +
-                        "    IN                                   Information about ICE state\n\r" +
-                        "    RS                                   Reset the CPU\n\r" +
-                        "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r" +
-                        "    DR                                   Dump registers\n\r" +
-                        "    SS                                   Single-step execution\n\r" +
-                        "    GO [<address>]                       Execute from PC (Stop at optional address)\n\r" +
-                        "    BK <address>                         Set execution breakpoint\n\r" +
-                        "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r" +
-                        "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r" +
-                        "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r" +
-                        "    FE <low_addr> <high_addr>            Execution Fencing\n\r" +
-                        "    LI [<address> [<count>]]             List <count> Instructions starting at <address>\n\r" +
-                        "                                              [default 16 insts from current PC]\n\r" +
-                        "    FI <address> <count> <value>         Fill memory with a value\n\r" +
-                        "    DE                                   Toggle application debug mode\n\r" +
-                        "    TR                                   Enable PC tracing\n\r" +
-                        "\n" +
-                        "    Addressing Modes:\n\r" +
-                        "       0 - All exernal memory accesses\n\r" +
-                        "       1 - Reads use cycle accurate internal memory and writes pass through to motherboard\n\r" +
-                        "       2 - Reads accelerated using internal memory and writes pass through to motherboard\n\r" +
-                        "       3 - All read and write accesses use accelerated internal memory\n\r");
+            Serial.println(
+                String("Available Commands:\n\r") +
+                "    IN                                   Information about ICE state\n\r" +
+                "    RS                                   Reset the CPU\n\r" +
+                "    MD <mode>                            Set memory addressing mode (0-3 see below)\n\r" +
+                "    DR                                   Dump registers\n\r" +
+                "    SS                                   Single-step execution\n\r" +
+                "    GO [<address>]                       Execute from PC (Stop at optional address)\n\r" +
+                "    BK <address>                         Set execution breakpoint\n\r" +
+                "    SR <reg> <value>                     Set register (PC, A, X, Y) to value\n\r" +
+                "    RD <address> [<count>]               Read from memory address, displays <count> values\n\r" +
+                "    WR <address> <value> [<value> ...]   Write values starting at memory address\n\r" +
+                "    FE <low_addr> <high_addr>            Enable execution fencing (break if PC is outside specified range)\n\r" +
+                "    LI [<address> [<count>]]             List <count> Instructions starting at <address>\n\r" +
+                "                                              [default 16 insts from current PC]\n\r" +
+                "    FI <address> <count> <value>         Fill memory with a value\n\r" +
+                "    DE                                   Toggle ICE application debug mode\n\r" +
+                "    TR                                   Enable PC tracing\n\r" +
+                "\n" +
+                "    Addressing Modes:\n\r" +
+                "       0 - All exernal memory accesses\n\r" +
+                "       1 - Reads use cycle accurate internal memory and writes pass through to motherboard\n\r" +
+                "       2 - Reads accelerated using internal memory and writes pass through to motherboard\n\r" +
+                "       3 - All read and write accesses use accelerated internal memory\n\r");
+
             run_mode = WAITING;
             break;
 
@@ -968,24 +701,19 @@ ENUM_RUN_MODE process_command(String input)
         {
             word value = strtoul(arg2.c_str(), 0, 16);
             // char buf[64]; sprintf(buf, "reg=%s, arg=%s, value=%04X", arg1.c_str(), arg2.c_str(), value); Serial.println(buf);
-            if (arg1 == "pc")
-            {
+            if (arg1 == "pc") {
                 register_pc = value & 0xFFFF;
             }
-            else if (arg1 == "a")
-            {
+            else if (arg1 == "a") {
                 register_a = value & 0xFF;
             }
-            else if (arg1 == "x")
-            {
+            else if (arg1 == "x") {
                 register_x = value & 0xFF;
             }
-            else if (arg1 == "y")
-            {
+            else if (arg1 == "y") {
                 register_y = value & 0xFF;
             }
-            else
-            {
+            else {
                 Serial.println("ERROR: unknown register identifier (options: pc, a, x, y)");
             }
         }
@@ -1001,8 +729,7 @@ ENUM_RUN_MODE process_command(String input)
 
         case CMD_GO:
             run_mode = RUNNING;
-            if (arg1.length())
-            {
+            if (arg1.length()) {
                 runto_address = strtoul(arg1.c_str(), 0, 16);
                 Serial.println("Breakpoint set to $" + String(breakpoint, HEX));
             }
@@ -1031,18 +758,15 @@ ENUM_RUN_MODE process_command(String input)
             char s[32];
             byte count = 1;
             word addr = strtoul(arg1.c_str(), 0, 16);
-            if (arg2.length())
-            {
+            if (arg2.length()) {
                 count = arg2.toInt() & 0xFF;
             }
 
             sprintf(s, "[%04X] = ", addr);
             Serial.print(s);
 
-            for (byte i = 0; i < count; i++)
-            {
-                if ((i != 0) && (i % 8 == 0))
-                {
+            for (byte i = 0; i < count; i++) {
+                if ((i != 0) && (i % 8 == 0)) {
                     sprintf(s, "\n\r[%04X] = ", addr);
                     Serial.print(s);
                 }
@@ -1059,23 +783,21 @@ ENUM_RUN_MODE process_command(String input)
 
         case CMD_FE:
         {
-            if (run_fence)
-            {
+            if (run_fence) {
                 run_fence = false;
                 Serial.println("Run fence disabled");
             }
-            else
-            {
+            else {
                 run_fence = true;
                 run_fence_low = strtoul(arg1.c_str(), 0, 16);
                 run_fence_high = strtoul(arg2.c_str(), 0, 16);
 
                 char buf[64];
-                sprintf(buf, "Run fence enabled for range $%04X to $%04X", run_fence_low, run_fence_high);
+                sprintf(buf, "Run fence enabled for range $%04X to $%04X",
+                        run_fence_low, run_fence_high);
                 Serial.println(buf);
             }
-        }
-        break;
+        } break;
 
         //
         //  Command:  WR <addr> <value> (<value> ...)
@@ -1089,21 +811,21 @@ ENUM_RUN_MODE process_command(String input)
 
             write_byte(addr, data);
 
-            while (remainder.length())
-            {
+            while (remainder.length()) {
                 String d = parse_next_arg(remainder, remainder);
                 data = strtoul(d.c_str(), 0, 16);
                 write_byte(++addr, data);
             }
             Serial.println("OK");
         }
-        run_mode = WAITING;
-        break;
+            run_mode = WAITING;
+            break;
 
-    default:
-        Serial.println("\n\nERROR: Can't parse command: \"" + input + "\" (" + cmd + ", " + arg1 + ", " + arg2 + ")");
-        run_mode = WAITING;
-        break;
+        default:
+            Serial.println("\n\nERROR: Can't parse command: \"" + input +
+                           "\" (" + cmd + ", " + arg1 + ", " + arg2 + ")");
+            run_mode = WAITING;
+            break;
     }
 
     return (run_mode);
@@ -1114,9 +836,7 @@ ENUM_RUN_MODE process_command(String input)
 // Main loop
 //
 // -------------------------------------------------
-void loop()
-{
-
+void loop() {
     if (direct_reset == 1)
         reset_sequence();
 
@@ -1134,60 +854,51 @@ void loop()
     //============================================================================
     //  ICE interface code
     //
-    if (breakpoint && (run_mode == RUNNING) && (register_pc == breakpoint))
-    {
+    if (breakpoint && (run_mode == RUNNING) && (register_pc == breakpoint)) {
         run_mode = WAITING;
     }
 
-    if (runto_address && (run_mode == RUNNING) && (register_pc == runto_address))
-    {
+    if (runto_address && (run_mode == RUNNING) &&
+        (register_pc == runto_address)) {
         run_mode = WAITING;
         runto_address = 0;
     }
 
-    if (run_mode != RUNNING)
-    {
+    if (run_mode != RUNNING) {
         uint16_t temp_pc = register_pc;
 
-        do
-        {
+        do {
             display_next_instruction(register_pc, next_instruction);
 
-            String c = get_command();
+            String c = get_user_command();
 
-            if (c.length() == 0 && last_command.length() != 0)
-            {
-                Serial.println(last_command);
-                run_mode = process_command(last_command);
+            if (c.length() == 0 && last_user_command.length() != 0) {
+                Serial.println(last_user_command);
+                run_mode = process_user_command(last_user_command);
             }
-            else
-            {
+            else {
                 Serial.println(" ");
-                run_mode = process_command(c);
-                last_command = c;
+                run_mode = process_user_command(c);
+                last_user_command = c;
             }
 
             Serial.println(" ");
 
             //  Update the next_instruction, as PC or memory may have changed
-            if ((run_mode != RUNNING) && (register_pc != temp_pc))
-            {
+            if ((run_mode != RUNNING) && (register_pc != temp_pc)) {
                 next_instruction = read_byte(register_pc);
                 temp_pc = register_pc;
             }
         } while (run_mode == WAITING);
     }
-    else
-    {
-        while (Serial.available() > 0)
-        {
+    else {
+        while (Serial.available() > 0) {
             // read the incoming byte:
             char b = Serial.read();
 
-            switch (b)
-            {
-            case 0x1B:
-                run_mode = WAITING;
+            switch (b) {
+                case 0x1B:
+                    run_mode = WAITING;
             }
         }
     }
@@ -1196,11 +907,12 @@ void loop()
     //  Skip the following code if we're waiting for the user
     //
     if (run_mode != WAITING) {
-
         if (run_fence) {
-            if (register_pc < run_fence_low || register_pc > run_fence_high)
-            {
-                String s = "EXECPTION: Attempt to execute outside of the run-fence (PC=" + String(register_pc, HEX) + ")";
+            if (register_pc < run_fence_low || register_pc > run_fence_high) {
+                String s =
+                    "EXECPTION: Attempt to execute outside of the run-fence "
+                    "(PC=" +
+                    String(register_pc, HEX) + ")";
                 Serial.println(s);
                 run_mode = WAITING;
                 return;
@@ -1225,6 +937,6 @@ void loop()
             register_pc = opcode_info[next_instruction].operation();
         else
             irq_handler(0x01);
-
     }
 }
+
