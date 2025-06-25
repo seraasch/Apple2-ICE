@@ -80,9 +80,10 @@ inline void start_read(uint32_t local_address);
 inline uint8_t read_byte(uint16_t local_address);
 inline void write_byte(uint16_t local_address, uint8_t local_write_data);
 void initialize_roms();
+inline void sample_at_CLK0_falling_edge();
 
 //-------------------------------------------------------------------------
-//   Interface to the opcode_decoder.ino
+//   Interface to instructions.ino
 //-------------------------------------------------------------------------
 struct OpDecoder {
     String opcode;
@@ -95,6 +96,7 @@ struct OpDecoder {
 
 String decode_instruction(uint8_t op, uint8_t op1, uint8_t op2);
 void initialize_opcode_info();
+void push(uint8_t push_data);
 
 //-------------------------------------------------
 //
@@ -448,7 +450,7 @@ String get_user_command() {
                     return (s.toLowerCase());
                     break;
                 case '\b':                          // BACKSPACE
-                    if (s.length()) {}
+                    if (s.length()) {
                         s.remove(s.length() - 1, 1);
                         Serial.print("\b \b");
                     }
@@ -522,13 +524,12 @@ String parse_next_arg(String& _src, String& remainder) {
 }
 
 
-String* tokenize(String str, int max_substrings) {
-    String substrings[max_substrings];
+void tokenize(String str, int max_substrings, String *substrings) {
 
     for (int i = 0; i < max_substrings; i++)
-        substrings[i] = ""
+        substrings[i] = "";
 
-            int substring_count = 0;
+    int substring_count = 0;
     while (str.length() > 0) {
 
         int index = str.indexOf(' ');
@@ -558,8 +559,8 @@ void list_instructions(uint16_t addr, uint8_t count) {
 ENUM_RUN_MODE process_user_command(String input) {
     // Serial.println("\nProcessing command: "+input);
 
-    String *command_parts;
-    command_parts = tokenize(input, max_command_parts);
+    String command_parts[max_command_parts];
+    tokenize(input, max_command_parts, command_parts);
 
     String command = command_parts[0];
 
@@ -706,32 +707,32 @@ ENUM_RUN_MODE process_user_command(String input) {
             break;
 
         case CMD_SR:
-        {
-            word value = strtoul(arg2.c_str(), 0, 16);
-            // char buf[64]; sprintf(buf, "reg=%s, arg=%s, value=%04X", arg1.c_str(), arg2.c_str(), value); Serial.println(buf);
-            if (arg1 == "pc") {
-                register_pc = value & 0xFFFF;
+            {
+                word value = strtoul(arg2.c_str(), 0, 16);
+                // char buf[64]; sprintf(buf, "reg=%s, arg=%s, value=%04X", arg1.c_str(), arg2.c_str(), value); Serial.println(buf);
+                if (arg1 == "pc") {
+                    register_pc = value & 0xFFFF;
+                }
+                else if (arg1 == "a") {
+                    register_a = value & 0xFF;
+                }
+                else if (arg1 == "x") {
+                    register_x = value & 0xFF;
+                }
+                else if (arg1 == "y") {
+                    register_y = value & 0xFF;
+                }
+                else {
+                    Serial.println("ERROR: unknown register identifier (options: pc, a, x, y)");
+                }
             }
-            else if (arg1 == "a") {
-                register_a = value & 0xFF;
-            }
-            else if (arg1 == "x") {
-                register_x = value & 0xFF;
-            }
-            else if (arg1 == "y") {
-                register_y = value & 0xFF;
-            }
-            else {
-                Serial.println("ERROR: unknown register identifier (options: pc, a, x, y)");
-            }
-        }
             display_registers();
             run_mode = WAITING;
             break;
 
         case CMD_IN:
             display_registers();
-            display_info();
+            display_ICE_info();
             run_mode = WAITING;
             break;
 
