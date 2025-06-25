@@ -203,6 +203,7 @@ const char* run_mode_str[] = {"Waiting", "Single-Step", "Running", "Resetting"};
 bool debug_mode = true;
 String last_user_command = "";
 
+
 // -------------------------------------------------
 // Check for CLK activity --> determines debug mode
 // -------------------------------------------------
@@ -226,8 +227,6 @@ bool check_for_CLK_activity() {
 // ------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------
 
-// Setup Teensy 4.1 IO's
-//
 void setup() {
     pinMode(PIN_CLK0_INV, INPUT);
     pinMode(PIN_RESET, INPUT);
@@ -278,8 +277,7 @@ void setup() {
     Serial.begin(115200);
     Serial.setTimeout(5000);
 
-    Serial.println(String("Apple ][+ In-circuit Emulator\n\rVersion ") +
-                   VERSION_NUM);
+    Serial.println(String("Apple ][+ In-circuit Emulator\n\rVersion ") + VERSION_NUM);
 
     if (!check_for_CLK_activity()) {
         debug_mode = true;
@@ -289,8 +287,7 @@ void setup() {
     else {
         debug_mode = false;
         addr_mode = All_External;
-        Serial.println(
-            "CLK activity detected... Starting in NORMAL MODE using external memory");
+        Serial.println("CLK activity detected... Starting in NORMAL MODE using external memory");
     }
 
     run_mode = WAITING;
@@ -405,33 +402,38 @@ void irq_handler(uint8_t opcode_is_brk) {
 // --------------------------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------
 
-void display_next_instruction(uint16_t pc, uint8_t opcode) {
-    uint8_t op1 = read_byte(pc + 1);
-    uint8_t op2 = read_byte(pc + 2);
-
-    Serial.println(String(pc, HEX) + ": " +
-                   decode_instruction(opcode, op1, op2));
-}
-
-void display_registers() {
-    char buf[32];
-    sprintf(buf, "Registers:  A=%02X, X=%02X, Y=%02X", register_a, register_x,
-            register_y);
-    Serial.println(buf);
-    sprintf(buf, "            PC=%04X, SP=%04X", register_pc,
-            register_sp_fixed);
-    Serial.println(buf);
-    sprintf(buf, "            Flags: %s", flag_status().c_str());
-    Serial.println(buf);
-}
-
-void display_info() {
+void display_ICE_info() {
     char buf[64];
     sprintf(buf, "Run-mode = %s, Address-mode = %d\n\rBreakpoint = %04X",
             run_mode_str[run_mode], addr_mode, breakpoint);
     Serial.println(buf);
 }
 
+void display_next_instruction(uint16_t pc, uint8_t opcode) {
+    uint8_t op1 = read_byte(pc + 1);
+    uint8_t op2 = read_byte(pc + 2);
+
+    Serial.println(String(pc, HEX) + ": " + decode_instruction(opcode, op1, op2));
+}
+
+void display_registers() {
+    char buf[32];
+    sprintf(buf, "Registers:  A=%02X, X=%02X, Y=%02X", 
+        register_a, register_x, register_y);
+    Serial.println(buf);
+
+    sprintf(buf, "            PC=%04X, SP=%04X", 
+        register_pc, register_sp_fixed);
+    Serial.println(buf);
+
+    sprintf(buf, "            Flags: %s", flag_status().c_str());
+    Serial.println(buf);
+}
+
+
+//----------------------------------------------------------------
+//  Read the user input and handle backspace & escape
+//----------------------------------------------------------------
 String get_user_command() {
     String s = "";
 
@@ -442,14 +444,20 @@ String get_user_command() {
             char c = Serial.read();
             // Serial.println("got 0x" + String(c, 16));
             switch (c) {
-                case '\r':
+                case '\r':                          // RETURN
                     return (s.toLowerCase());
                     break;
-                case '\b':
-                    s.remove(s.length() - 1, 1);
-                    Serial.print("\b \b");
+                case '\b':                          // BACKSPACE
+                    if (s.length()) {}
+                        s.remove(s.length() - 1, 1);
+                        Serial.print("\b \b");
+                    }
                     break;
-                default:
+                case '\e':                          // ESCAPE
+                    Serial.print("\033[2K\r>> ");   // Clear entire line, return to first column, print prompt
+                    s = "";
+                    break;
+                default:                            // All other characters
                     if (isprint(c)) {
                         s.concat(c);
                         Serial.print(c);
@@ -551,7 +559,7 @@ ENUM_RUN_MODE process_user_command(String input) {
     // Serial.println("\nProcessing command: "+input);
 
     String *command_parts;
-    command_parts = tokenize(input.toLowerCase, max_command_parts);
+    command_parts = tokenize(input, max_command_parts);
 
     String command = command_parts[0];
 
@@ -854,15 +862,35 @@ void loop() {
     //============================================================================
     //  ICE interface code
     //
-    if (breakpoint && (run_mode == RUNNING) && (register_pc == breakpoint)) {
-        run_mode = WAITING;
+    if (run_mode == RUNNING) {
+        if (breakpoint && (register_pc == breakpoint)) {
+            run_mode = WAITING;
+        }
+
+        if (runto_address && (register_pc == runto_address)) {
+            run_mode = WAITING;
+            runto_address = 0;
+        }
+
+        //
+        //  Check for ESC keypress and enter WAITING mode if pressed
+        //
+        while (Serial.available() > 0) {
+            char b = Serial.read();
+
+            switch (b) {
+                case 0x1B:
+                    run_mode = WAITING;
+            }
+        }
     }
 
-    if (runto_address && (run_mode == RUNNING) &&
-        (register_pc == runto_address)) {
-        run_mode = WAITING;
-        runto_address = 0;
-    }
+
+    //----------------------------------------------------------------------------
+    //
+    //  If we are not RUNNING, display prompt and execute user command
+    //
+    //----------------------------------------------------------------------------
 
     if (run_mode != RUNNING) {
         uint16_t temp_pc = register_pc;
@@ -891,37 +919,23 @@ void loop() {
             }
         } while (run_mode == WAITING);
     }
-    else {
-        while (Serial.available() > 0) {
-            // read the incoming byte:
-            char b = Serial.read();
 
-            switch (b) {
-                case 0x1B:
-                    run_mode = WAITING;
-            }
-        }
-    }
-
+    //=================================================================================================================
+    //=================================================================================================================
+    //  
+    //  Prepare to EXECUTE an instruction...
     //
-    //  Skip the following code if we're waiting for the user
-    //
+    //=================================================================================================================
+    //=================================================================================================================
     if (run_mode != WAITING) {
         if (run_fence) {
             if (register_pc < run_fence_low || register_pc > run_fence_high) {
-                String s =
-                    "EXECPTION: Attempt to execute outside of the run-fence "
-                    "(PC=" +
-                    String(register_pc, HEX) + ")";
+                String s = "BREAK: Attempt to execute outside of the run-fence (PC=" + String(register_pc, HEX) + ")";
                 Serial.println(s);
                 run_mode = WAITING;
-                return;
+                return;   // Essentially jumps to the top of the loop()
             }
         }
-
-        // For SS mode, turn on the SYNC signal for EVERY INSTRUCTION
-        if (run_mode == SINGLE_STEP)
-            digitalWriteFast(PIN_SYNC, 0x1);
 
         if (pc_trace) {
             String s = String(pc_trace_index) + ": " + String(register_pc, HEX);
@@ -930,9 +944,10 @@ void loop() {
             pc_trace_index++;
         }
 
-        //==============================================================================
+        //
         // If we have a real instruction, execute it now and update the PC,
         //    otherwise handle the IRQ
+        //
         if (next_instruction != 0)
             register_pc = opcode_info[next_instruction].operation();
         else
